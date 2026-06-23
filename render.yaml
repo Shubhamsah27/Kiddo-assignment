@@ -1,6 +1,7 @@
 services:
-  - type: static
+  - type: web
     name: kiddo-sdui-homepage
+    env: static
     repo: https://github.com/Shubhamsah27/Kiddo-assignment
     branch: main
     buildCommand: npm install && npm run build
