@@ -1,14 +1,15 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { ProductGrid2x2Block } from "../types/blocks";
+import { ProductGridBlock } from "../types/blocks";
 import { ProductCard } from "../components/ProductCard";
+import { BrandTokens } from "../tokens/brandTokens";
 
-interface ProductGrid2x2Props {
-  block: ProductGrid2x2Block;
+interface ProductGridProps {
+  block: ProductGridBlock;
 }
 
-export const ProductGrid2x2: React.FC<ProductGrid2x2Props> = ({ block }) => {
-  const displayItems = block.items.slice(0, 4);
+export const ProductGrid: React.FC<ProductGridProps> = ({ block }) => {
+  const displayItems = (block.products || []).slice(0, 4);
 
   return (
     <View style={styles.container}>
@@ -26,15 +27,15 @@ export const ProductGrid2x2: React.FC<ProductGrid2x2Props> = ({ block }) => {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: BrandTokens.space3,
+    paddingVertical: BrandTokens.space3,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#222",
-    marginBottom: 10,
-    letterSpacing: 0.2,
+    fontSize: 20,
+    fontWeight: "600",
+    color: BrandTokens.coral,
+    marginBottom: BrandTokens.space2,
+    fontFamily: BrandTokens.fontDisplay,
   },
   grid: {
     flexDirection: "row",
@@ -43,6 +44,7 @@ const styles = StyleSheet.create({
   },
   gridCell: {
     width: "48%",
-    marginBottom: 14,
+    marginBottom: BrandTokens.space3,
   },
 });
+export default ProductGrid;

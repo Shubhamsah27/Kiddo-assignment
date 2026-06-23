@@ -1,53 +1,119 @@
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { Image } from "expo-image";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import { Product } from "../types/blocks";
-import { useCartStore } from "../state/cartStore";
+import { useCartStore, selectQuantity } from "../state/cartStore";
 import { useTheme } from "../state/ThemeContext";
 import { handleAction } from "../engine/actionDispatcher";
+import { BrandTokens } from "../tokens/brandTokens";
 
 interface ProductCardProps {
   product: Product;
 }
 
+// Category to Emoji and Tinted Color Mapping
+const CATEGORY_MAP: Record<string, { emoji: string; bg: string }> = {
+  toys: { emoji: "🧸", bg: "#FFE8EC" },
+  books: { emoji: "📚", bg: "#E6F4FE" },
+  stationery: { emoji: "✏️", bg: "#FFF9E6" },
+  clothing: { emoji: "👕", bg: "#E6F9F5" },
+  default: { emoji: "📦", bg: "#F5F5F5" },
+};
+
 export const ProductCard: React.FC<ProductCardProps> = React.memo(
   ({ product }) => {
     const theme = useTheme();
     
-    // Subscribe to count ONLY for this specific product ID
-    const quantity = useCartStore((state) => state.items[product.id] ?? 0);
-    const addToCart = () => handleAction(product.action);
-    const removeFromCart = () => useCartStore.getState().removeFromCart(product.id);
+    // Selector subscription to quantity
+    const quantity = useCartStore(selectQuantity(product.id));
 
-    // Track renders in a ref for visual audit
+    const addToCart = () =>
+      handleAction({
+        type: "ADD_TO_CART",
+        payload: {
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          imageUrl: product.imageUrl,
+          category: product.category,
+        } as any,
+      });
+
+    const removeFromCart = () =>
+      handleAction({
+        type: "REMOVE_FROM_CART",
+        payload: { id: product.id },
+      });
+
+    // Pulse animation logic for hot/trending product badge (delight layer 14.8)
+    const glowOpacity = useSharedValue(0.4);
+    useEffect(() => {
+      if (product.badge?.pulse) {
+        glowOpacity.value = withRepeat(
+          withSequence(
+            withTiming(1, { duration: 600 }),
+            withTiming(0.4, { duration: 600 })
+          ),
+          -1,
+          true
+        );
+      }
+    }, [product.badge?.pulse]);
+
+    const pulseStyle = useAnimatedStyle(() => ({
+      opacity: glowOpacity.value,
+      transform: [
+        {
+          scale: withSequence(
+            withTiming(1.05, { duration: 600 }),
+            withTiming(1, { duration: 600 })
+          ),
+        },
+      ],
+    }));
+
+    // Render count auditing
     const renderCount = useRef(0);
     renderCount.current += 1;
 
+    const categoryInfo = CATEGORY_MAP[product.category] || CATEGORY_MAP.default;
+
     return (
-      <View style={[styles.card, { borderColor: theme.primary + "30" }]}>
-        {/* Render counter visual proof */}
+      <View style={[styles.card, { borderColor: theme.primary + "15" }]}>
+        {/* Render isolation tracking label */}
         <View style={styles.renderBadge}>
           <Text style={styles.renderText}>R: {renderCount.current}</Text>
         </View>
 
-        <Image
-          source={{ uri: product.imageUrl }}
-          style={styles.image}
-          contentFit="cover"
-          transition={200}
-        />
+        {/* Brand System category-keyed background icon tile */}
+        <View style={[styles.tileContainer, { backgroundColor: categoryInfo.bg }]}>
+          <Text style={styles.tileEmoji}>{categoryInfo.emoji}</Text>
+        </View>
 
         {product.badge && (
-          <View style={[styles.productBadge, { backgroundColor: theme.primary }]}>
+          <Animated.View
+            style={[
+              styles.productBadge,
+              { backgroundColor: theme.accent },
+              product.badge.pulse ? pulseStyle : null,
+            ]}
+          >
             <Text style={styles.productBadgeText}>{product.badge.label}</Text>
-          </View>
+          </Animated.View>
         )}
 
         <View style={styles.details}>
           <Text style={styles.title} numberOfLines={1}>
-            {product.title}
+            {product.name}
           </Text>
-          <Text style={styles.price}>₹{product.price}</Text>
+          {/* Display price in rupees (pence / 100) */}
+          <Text style={styles.price}>₹{Math.round(product.price / 100)}</Text>
 
           {quantity > 0 ? (
             <View style={styles.quantityContainer}>
@@ -82,15 +148,15 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
+    backgroundColor: BrandTokens.cream,
+    borderRadius: BrandTokens.radiusMd,
     borderWidth: 1,
     overflow: "hidden",
     width: "100%",
     elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.08,
     shadowRadius: 2,
     position: "relative",
   },
@@ -99,7 +165,7 @@ const styles = StyleSheet.create({
     top: 4,
     left: 4,
     backgroundColor: "rgba(0, 0, 0, 0.6)",
-    borderRadius: 4,
+    borderRadius: BrandTokens.radiusSm - 4,
     paddingHorizontal: 4,
     paddingVertical: 2,
     zIndex: 10,
@@ -107,44 +173,51 @@ const styles = StyleSheet.create({
   renderText: {
     color: "#fff",
     fontSize: 9,
-    fontFamily: "System",
+    fontFamily: BrandTokens.fontBody,
     fontWeight: "bold",
   },
-  image: {
+  tileContainer: {
     width: "100%",
-    height: 110,
-    backgroundColor: "#f5f5f5",
+    height: 100,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tileEmoji: {
+    fontSize: 42,
   },
   productBadge: {
     position: "absolute",
     top: 4,
     right: 4,
-    borderRadius: 4,
+    borderRadius: BrandTokens.radiusSm - 4,
     paddingHorizontal: 6,
     paddingVertical: 2,
     zIndex: 10,
   },
   productBadgeText: {
-    color: "#fff",
+    color: "#333",
     fontSize: 9,
-    fontWeight: "bold",
+    fontWeight: "700",
+    fontFamily: BrandTokens.fontBody,
   },
   details: {
-    padding: 8,
+    padding: BrandTokens.space2,
   },
   title: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "600",
     color: "#333",
+    fontFamily: BrandTokens.fontBody,
   },
   price: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "700",
     color: "#111",
     marginVertical: 4,
+    fontFamily: BrandTokens.fontBody,
   },
   addButton: {
-    borderRadius: 6,
+    borderRadius: BrandTokens.radiusPill,
     paddingVertical: 6,
     alignItems: "center",
     marginTop: 4,
@@ -153,6 +226,7 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 12,
     fontWeight: "700",
+    fontFamily: BrandTokens.fontBody,
   },
   quantityContainer: {
     flexDirection: "row",
@@ -161,7 +235,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   qtyButton: {
-    borderRadius: 6,
+    borderRadius: BrandTokens.radiusSm,
     width: 24,
     height: 24,
     alignItems: "center",
@@ -171,10 +245,12 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 14,
     fontWeight: "700",
+    fontFamily: BrandTokens.fontBody,
   },
   quantityText: {
     fontSize: 13,
     fontWeight: "700",
     color: "#111",
+    fontFamily: BrandTokens.fontBody,
   },
 });

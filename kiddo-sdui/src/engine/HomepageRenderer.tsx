@@ -1,28 +1,43 @@
 import React from "react";
-import { StyleSheet, View, Text } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
-import { IncomingBlock, KnownBlock } from "../types/blocks";
+import { Block } from "../types/blocks";
 import { ComponentRegistry } from "./ComponentRegistry";
 import { BlockErrorBoundary } from "./BlockErrorBoundary";
 import { useTheme } from "../state/ThemeContext";
 import { StaggeredView } from "../components/StaggeredView";
 
 interface HomepageRendererProps {
-  blocks: IncomingBlock[];
+  blocks: Block[];
+  blockOverrides?: Record<string, Partial<Block>>;
 }
 
-export const HomepageRenderer: React.FC<HomepageRendererProps> = ({ blocks }) => {
+export const HomepageRenderer: React.FC<HomepageRendererProps> = ({
+  blocks,
+  blockOverrides = {},
+}) => {
   const theme = useTheme();
 
-  // Defensive validation of blocks: filter null/undefined and check structure
-  const validatedBlocks = blocks.filter((block): block is IncomingBlock => {
-    if (!block || typeof block !== "object") return false;
-    if (!block.id || !block.type) return false;
-    return true;
-  });
+  // Defensive validation & runtime overrides merging
+  const validatedBlocks = blocks
+    .filter((block): block is Block => {
+      if (!block || typeof block !== "object") return false;
+      if (!block.id || !block.type) return false;
+      return true;
+    })
+    .map((block) => {
+      // Merge overrides dynamically without mutating the original mock payload
+      if (blockOverrides[block.id]) {
+        return {
+          ...block,
+          ...blockOverrides[block.id],
+        } as Block;
+      }
+      return block;
+    });
 
-  const renderBlockItem = ({ item }: { item: IncomingBlock }) => {
-    const Component = ComponentRegistry[item.type as KnownBlock["type"]];
+  const renderBlockItem = ({ item }: { item: Block }) => {
+    const Component = ComponentRegistry[item.type];
 
     if (!Component) {
       if (__DEV__) {
@@ -31,11 +46,15 @@ export const HomepageRenderer: React.FC<HomepageRendererProps> = ({ blocks }) =>
       return null;
     }
 
-    // Defensive check: grid and collections require items array
-    if (
-      (item.type === "PRODUCT_GRID_2X2" || item.type === "DYNAMIC_COLLECTION") &&
-      (!item.items || !Array.isArray(item.items))
-    ) {
+    // Defensive check: grids require product array, collections require items array
+    if (item.type === "PRODUCT_GRID" && (!item.products || !Array.isArray(item.products))) {
+      if (__DEV__) {
+        console.warn(`[SDUI] Block "${item.type}" is missing required 'products' array — dropped.`);
+      }
+      return null;
+    }
+
+    if (item.type === "DYNAMIC_COLLECTION" && (!item.items || !Array.isArray(item.items))) {
       if (__DEV__) {
         console.warn(`[SDUI] Block "${item.type}" is missing required 'items' array — dropped.`);
       }
@@ -44,7 +63,7 @@ export const HomepageRenderer: React.FC<HomepageRendererProps> = ({ blocks }) =>
 
     return (
       <BlockErrorBoundary blockType={item.type} blockId={item.id}>
-        <StaggeredView index={blocks.indexOf(item)}>
+        <StaggeredView index={validatedBlocks.indexOf(item)}>
           <Component block={item} />
         </StaggeredView>
       </BlockErrorBoundary>
@@ -72,3 +91,4 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
 });
+export default HomepageRenderer;

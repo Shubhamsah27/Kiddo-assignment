@@ -1,21 +1,25 @@
 export type ActionType =
   | "ADD_TO_CART"
-  | "DEEP_LINK"
-  | "APPLY_MYSTERY_GIFT_COUPON";
+  | "REMOVE_FROM_CART"
+  | "NAVIGATE"
+  | "APPLY_COUPON";
 
-export interface BaseAction<T extends ActionType, P> {
-  type: T;
-  payload: P;
+export interface Action {
+  type: ActionType;
+  payload: Record<string, unknown>;
 }
-
-export type AddToCartAction = BaseAction<"ADD_TO_CART", { productId: string; qty?: number }>;
-export type DeepLinkAction = BaseAction<"DEEP_LINK", { url: string }>;
-export type ApplyMysteryGiftAction = BaseAction<"APPLY_MYSTERY_GIFT_COUPON", { couponCode: string }>;
-
-export type Action = AddToCartAction | DeepLinkAction | ApplyMysteryGiftAction;
 
 export interface ThemeConfig {
   primary: string;
   background: string;
-  ambientMotion?: "confetti" | "bubbles" | "sparkle" | "none";
+  accent: string;
+  ambientMotion?: "confetti" | "bubbles" | "sparkle";
+}
+export interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  imageUrl: string;
+  category: string;
+  quantity?: number;
 }

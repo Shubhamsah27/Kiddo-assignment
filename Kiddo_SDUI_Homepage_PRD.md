@@ -1,415 +1,656 @@
-# PRD: Kiddo Homepage — Server-Driven UI (SDUI) Renderer
+# Kiddo SDUI Homepage — Product Requirements Document
 
-**Doc type:** Product & Engineering Requirements Document
-**Owner:** [You]
-**Status:** Draft — derived from assignment brief
-**Last updated:** 2026-06-23
-
----
-
-## 1. Purpose
-
-This PRD translates the "Kiddo Tech Assignment" brief into a concrete spec: what the system is, what it must do, how it's structured, and how it will be judged. It exists to give the build a single source of truth instead of working straight off a loosely-worded brief — and to double as the documentation reviewers will expect alongside the code.
-
-## 2. Background
-
-Kiddo's mobile homepage changes constantly — Diwali sales, New Year promos, summer campaigns — and the business constraint is **zero app store release cycles** for any of this. The standard way growth/marketing-heavy apps (Blinkit, Zomato, Swiggy Instamart) solve this is **Server-Driven UI (SDUI)**: the backend emits a JSON payload describing *what* to render and *how it should look*; the client is a generic rendering engine with no hardcoded screen content, only registered building blocks.
-
-This assignment asks you to build that rendering engine end-to-end, using a local mock JSON file in place of a real backend.
-
-## 3. Problem Statement
-
-Build a React Native client that can:
-- Ingest an arbitrary, deeply nested JSON payload describing a home screen.
-- Render it as a smooth, native-feeling feed of heterogeneous components.
-- Stay stable when the payload contains data it doesn't understand.
-- Let the *visual identity* of the whole app (colors, overlays, promo rows) change at runtime, driven purely by data — proving no code change / app store release is needed to run a campaign.
-- Avoid the classic "everything re-renders" trap that large config-driven feeds fall into.
-
-## 4. Goals
-
-| # | Goal |
-|---|------|
-| G1 | A type-safe, declarative Component Registry (factory pattern) maps JSON `type` strings to React components — no `switch`/`if-else` chains. |
-| G2 | The full homepage renders inside **one** virtualized vertical list, with a horizontal virtualized carousel nested inside one of the block types, without dropping frames. |
-| G3 | A single centralized `handleAction()` dispatcher is the only place that interprets action semantics; UI components stay "dumb." |
-| G4 | Three runtime-swappable "campaign" configs demonstrate full theme/overlay/animation swaps from data alone. |
-| G5 | Cart-state updates from any single card never cause sibling cards to re-render. |
-| G6 | Unknown/malformed block types are dropped silently and never crash or corrupt the surrounding tree. |
-
-*(§14 adds an optional, additive "Delight Layer" of motion/micro-interaction polish on top of this architecture. It does not replace, weaken, or count against G1–G6 — it's a stretch layer, not a goal.)*
-
-## 5. Non-Goals (Out of Scope)
-
-- A real backend, real network calls, or real payment/cart persistence.
-- Pixel-perfect production visual design — functional, clean UI is sufficient.
-- Authentication, user accounts, or order history.
-- Real Lottie/WebP assets — placeholder or freely-licensed sample assets are fine, referenced by URL/local file as if remote.
-- Cross-platform pixel parity (iOS vs Android) — best-effort only.
-
-## 6. Users / Stakeholders (in-fiction)
-
-- **Shopper (end user):** sees a fast, glitch-free home feed regardless of which campaign is live.
-- **Growth/Marketing team (payload author):** can "ship" a new campaign by publishing a new JSON config — this is the persona whose constraint (no app release) the whole architecture serves.
-- **Mobile engineering team (you):** owns the rendering engine and the registry; should be able to add a brand-new block type by registering a component, not by editing a core switch statement.
+**Version:** 2.0 (post-session update — §14, §15, §16 added)
+**Platform:** React Native (Expo + expo-dev-client)
+**Assignment type:** Take-home / portfolio
 
 ---
 
-## 7. Functional Requirements
+## §1 — Purpose & Scope
 
-### FR1 — Mock JSON Payload & Schema
-Construct a local JSON file simulating the backend payload. It must contain a `theme` object, a `blocks` array with a realistic mix of block types (including at least one block whose `type` is **not** in the registry, to exercise resilience), and enough item-level data (images, prices, titles, actions) to look like a real catalog feed — not just 2–3 stub blocks.
+Build a server-driven UI (SDUI) homepage renderer for the **Kiddo** kids' e-commerce app. The renderer ingests a JSON payload and maps each block to a React Native component, producing a scrollable homepage without any component-level logic hard-coded to specific content.
 
-### FR2 — Component Registry (Factory Pattern)
-A single lookup structure (object/Map) of `type → Component`. The renderer does `registry[block.type]`; if undefined, it returns `null`/skips and (ideally) logs a dev-only warning. Adding a new block type should mean adding one entry, not touching renderer logic.
-
-### FR3 — Required Block Types
-| Type | Behavior |
-|---|---|
-| `BANNER_HERO` | Full-width promo image/card, tappable, fires an `action`. |
-| `PRODUCT_GRID_2X2` | 2x2 grid of product cards nested in one block, each independently tappable/addable to cart. |
-| `DYNAMIC_COLLECTION` | Horizontal carousel with a title (e.g. "Snacks under ₹99"), items independently tappable/addable to cart. |
-| `FULL_SCREEN_OVERLAY` | Campaign-only — see FR7/FR8. |
-
-### FR4 — Structural Resilience
-Any block with an unrecognized `type`, or a recognized `type` with missing/malformed required fields, must be dropped without throwing, without breaking sibling block rendering, and without an unhandled visual gap that looks broken (e.g. don't render a broken-image icon — just omit the block).
-
-### FR5 — Nested Virtualization (Dynamic Collection)
-`DYNAMIC_COLLECTION` is a horizontal FlashList/FlatList mounted as a list-item inside the outer vertical FlashList/FlatList. Horizontal gestures on the carousel must not steal, throttle, or visually compete with the outer list's vertical scroll velocity. No new horizontal-list instance should be created per re-render of the outer list (would cause memory growth) — instances should be stable across normal scroll/interaction.
-
-### FR6 — Universal Action Dispatcher
-A single exported `handleAction(action: Action)` function is the only place that branches on `action.type` (`ADD_TO_CART`, `DEEP_LINK`, `APPLY_MYSTERY_GIFT_COUPON`, etc.) and decides what happens. Leaf components (`ProductCard`, `BannerHero`, …) only know "I was tapped, here's my action object" — they import and call the dispatcher, they don't contain cart/navigation logic themselves.
-
-### FR7 — Live Campaign Engine
-Three bundled local campaign configs, switchable at runtime via local UI control (e.g. a dev-only switcher) simulating what a backend flag would do in production:
-
-| Campaign | Theme | Distinct elements |
-|---|---|---|
-| Back to School Mega-Sale | bright yellow + primary blue | Lottie animation (paper airplanes/pencils); dedicated "Lunchboxes & Bags" row |
-| Summer Playhouse Festival | ocean blue palette | Animated WebP overlay (water splash/beach ball); "Petting Zoo Tickets" row |
-| Mystery Gift Carnival | carnival red | Confetti overlay; row whose action is `APPLY_MYSTERY_GIFT_COUPON` |
-
-Switching the active campaign must only require swapping which local JSON config is loaded — no component code changes.
-
-### FR8 — Full-Screen Overlay Behavior
-`FULL_SCREEN_OVERLAY` (`{ type: "FULL_SCREEN_OVERLAY", animation_url }`) renders above the entire screen, scaled to fill it, with `pointerEvents="none"` on the overlay's outer wrapper so all taps pass through to the underlying feed. Remote animation assets are loaded through a caching-aware loader (e.g. cache-first fetch, or `expo-image`/Lottie's built-in caching) rather than re-fetched on every mount.
-
-### FR9 — OTA Runtime Theming
-The payload's `theme: { primary, background }` is read once and provided via a React Context at the root of the engine. Buttons, headers, borders, and CTAs read from this context rather than hardcoded colors, so switching campaigns visibly re-skins the whole tree without a re-mount of the list itself.
-
-### FR10 — Local State Collocation (Cart Isolation)
-Tapping "add to cart" on any single product card (in a grid or a carousel) updates a global cart-quantity counter immediately and correctly, while provably **not** re-rendering unrelated cards elsewhere in the feed. This must be demonstrable (e.g. a visible render-count badge per card, or a profiler screenshot) — not just claimed.
+The assignment is graded on architectural cleanliness, render isolation, TypeScript rigour, and defensive resilience — not visual polish or backend integration.
 
 ---
 
-## 8. Data Model (TypeScript)
+## §2 — Goals
 
-```ts
-// ---- Actions ----
+| ID | Goal |
+|----|------|
+| G1 | **Architectural cleanliness** — factory-pattern Component Registry; zero direct switch statements in the feed renderer |
+| G2 | **Sustained frame performance** — 60 fps scrolling; no unnecessary re-renders |
+| G3 | **TypeScript strategy** — strict mode, discriminated unions for all block and action types; no `any` |
+| G4 | **Defensive resilience** — a bad block must never crash the feed; unknown types are silently skipped |
+| G5 | **Cart isolation** — quantity mutations re-render only the affected `ProductCard`, not siblings |
+| G6 | **OTA theming** — campaign skin (colours + overlay animation) swappable at runtime without a native rebuild |
+
+---
+
+## §3 — Non-Goals
+
+- Pixel-perfect production design
+- Real backend / GraphQL / REST calls (mock JSON only)
+- Authentication or user accounts
+- Accessibility standards (WCAG)
+- Persistence (no AsyncStorage, no DB)
+- Unit or E2E test coverage (Playwright is optional tooling only)
+- App Store submission
+
+---
+
+## §4 — Tech Stack
+
+| Concern | Library |
+|---------|---------|
+| List rendering | `@shopify/flash-list` |
+| Animations | `react-native-reanimated`, `lottie-react-native` |
+| State (cart) | `zustand` |
+| Theming | React Context |
+| Language | TypeScript (strict) |
+| Runtime | Expo SDK + `expo-dev-client` (native modules required) |
+| Haptics | `expo-haptics` |
+
+> **Note:** Plain Expo Go will not run FlashList or Lottie. A dev-client build is required.
+
+---
+
+## §5 — Block Types
+
+```typescript
+type BlockType =
+  | 'BANNER_HERO'
+  | 'PRODUCT_GRID'
+  | 'DYNAMIC_COLLECTION'   // horizontal carousel
+  | 'FULL_SCREEN_OVERLAY'  // Lottie / WebP campaign animation
+```
+
+Unknown block types are silently skipped — the registry returns `null` and the FlashList moves on.
+
+---
+
+## §6 — Action Types
+
+```typescript
 type ActionType =
-  | "ADD_TO_CART"
-  | "DEEP_LINK"
-  | "APPLY_MYSTERY_GIFT_COUPON";
+  | 'ADD_TO_CART'
+  | 'REMOVE_FROM_CART'
+  | 'NAVIGATE'
+  | 'APPLY_COUPON'
+```
 
-interface BaseAction<T extends ActionType, P> {
-  type: T;
-  payload: P;
-}
+Unknown action types are safely ignored by the dispatcher switch statement.
 
-type AddToCartAction = BaseAction<"ADD_TO_CART", { productId: string; qty?: number }>;
-type DeepLinkAction = BaseAction<"DEEP_LINK", { url: string }>;
-type ApplyMysteryGiftAction = BaseAction<"APPLY_MYSTERY_GIFT_COUPON", { couponCode: string }>;
+---
 
-type Action = AddToCartAction | DeepLinkAction | ApplyMysteryGiftAction;
+## §7 — Campaign System
 
-// ---- Product ----
+Three pre-configured campaigns, each with:
+
+- A distinct colour scheme (primary + background + accent)
+- Campaign-specific featured blocks injected into the feed
+- A full-screen Lottie overlay animation
+- Optional ambient motion behind the hero banner
+
+Campaigns are swappable at runtime via a dev-mode switcher — no native rebuild required.
+
+| Campaign ID | Theme name | Primary colour | Overlay animation |
+|-------------|------------|----------------|-------------------|
+| `summer` | Summer Splash | `#FF6B6B` (coral) | Bubbles |
+| `back_to_school` | Back to School | `#4ECDC4` (sky) | Confetti |
+| `festive` | Festive | `#FFE66D` (sun) | Sparkles |
+
+---
+
+## §8 — Data Model
+
+```typescript
+// Products
 interface Product {
   id: string;
-  title: string;
+  name: string;
+  price: number;          // in pence / cents
   imageUrl: string;
-  price: number;
-  action: AddToCartAction;
-  badge?: { label: string; pulse?: boolean }; // optional — §14 D7, absent = no visual change
+  category: string;
+  badge?: {
+    label: string;
+    pulse?: boolean;      // optional delight field — §14
+  };
 }
 
-// ---- Blocks (discriminated union) ----
+// Block base
 interface BaseBlock {
   id: string;
-  type: string; // intentionally widened here; narrowed per-variant below
+  type: BlockType;
+  campaignId?: string;
 }
 
+// Block variants
 interface BannerHeroBlock extends BaseBlock {
-  type: "BANNER_HERO";
+  type: 'BANNER_HERO';
+  headline: string;
+  subline?: string;
+  ctaLabel: string;
+  ctaAction: Action;
   imageUrl: string;
-  action?: Action;
 }
 
-interface ProductGrid2x2Block extends BaseBlock {
-  type: "PRODUCT_GRID_2X2";
-  title?: string;
-  items: Product[]; // expect exactly 4, but don't crash if fewer
+interface ProductGridBlock extends BaseBlock {
+  type: 'PRODUCT_GRID';
+  title: string;
+  products: Product[];
 }
 
 interface DynamicCollectionBlock extends BaseBlock {
-  type: "DYNAMIC_COLLECTION";
+  type: 'DYNAMIC_COLLECTION';
   title: string;
   items: Product[];
 }
 
 interface FullScreenOverlayBlock extends BaseBlock {
-  type: "FULL_SCREEN_OVERLAY";
-  animation_url: string;
+  type: 'FULL_SCREEN_OVERLAY';
+  lottieUrl: string;
+  durationMs: number;
 }
 
-type KnownBlock =
+type Block =
   | BannerHeroBlock
-  | ProductGrid2x2Block
+  | ProductGridBlock
   | DynamicCollectionBlock
   | FullScreenOverlayBlock;
 
-// What actually arrives over the wire — type may be anything, including garbage
-type IncomingBlock = KnownBlock | (BaseBlock & { type: string; [k: string]: unknown });
+// Actions
+interface Action {
+  type: ActionType;
+  payload: Record<string, unknown>;
+}
 
-// ---- Theme & Campaign ----
+// Theme
 interface ThemeConfig {
   primary: string;
   background: string;
-  ambientMotion?: "confetti" | "bubbles" | "sparkle" | "none"; // optional — §14 D6
+  accent: string;
+  ambientMotion?: 'confetti' | 'bubbles' | 'sparkle'; // optional — §14
 }
 
-interface CampaignConfig {
-  id: "back_to_school" | "summer_playhouse" | "mystery_gift_carnival";
-  name: string;
-  theme: ThemeConfig;
-  overlay?: FullScreenOverlayBlock;
-  extraBlocks?: KnownBlock[];
-  refreshAnimationUrl?: string; // optional — §14 D9, themed pull-to-refresh
-}
-
-// ---- Root payload ----
+// Homepage payload
 interface HomepagePayload {
-  theme: ThemeConfig;
-  activeCampaignId?: CampaignConfig["id"];
-  blocks: IncomingBlock[];
+  campaignId?: string;
+  blocks: Block[];
 }
 ```
 
-## 9. Technical Architecture
+---
 
-### 9.1 Registry pattern (FR2)
-```ts
-type BlockComponent<B extends KnownBlock> = React.FC<{ block: B }>;
+## §9 — Architecture
 
-const ComponentRegistry: { [K in KnownBlock["type"]]: BlockComponent<Extract<KnownBlock, { type: K }>> } = {
+### 9.1 Component Registry
+
+```typescript
+// src/registry/blockRegistry.ts
+import { BannerHero } from '../blocks/BannerHero';
+import { ProductGrid } from '../blocks/ProductGrid';
+import { DynamicCollection } from '../blocks/DynamicCollection';
+import { FullScreenOverlay } from '../blocks/FullScreenOverlay';
+
+const REGISTRY: Partial<Record<BlockType, React.ComponentType<any>>> = {
   BANNER_HERO: BannerHero,
-  PRODUCT_GRID_2X2: ProductGrid,
+  PRODUCT_GRID: ProductGrid,
   DYNAMIC_COLLECTION: DynamicCollection,
   FULL_SCREEN_OVERLAY: FullScreenOverlay,
 };
 
-function renderBlock(block: IncomingBlock) {
-  const Component = ComponentRegistry[block.type as KnownBlock["type"]];
-  if (!Component) {
-    if (__DEV__) console.warn(`[SDUI] Unrecognized block type "${block.type}" — dropped.`);
-    return null;
-  }
-  return <Component block={block as any} />;
+export function renderBlock(block: Block): React.ReactElement | null {
+  const Component = REGISTRY[block.type];
+  if (!Component) return null;   // unknown type — silently skip
+  return <Component {...block} />;
 }
 ```
 
-### 9.2 Action dispatcher (FR6)
-```ts
-export function handleAction(action: Action) {
+Adding a new block type = import component + add one line to `REGISTRY`. The feed renderer never needs to change.
+
+### 9.2 Action Dispatcher
+
+```typescript
+// src/actions/dispatcher.ts
+import { useCartStore } from '../store/cartStore';
+import { router } from 'expo-router';
+
+export function handleAction(action: Action): void {
+  const { addItem, removeItem } = useCartStore.getState();
+
   switch (action.type) {
-    case "ADD_TO_CART":
-      useCartStore.getState().addToCart(action.payload.productId, action.payload.qty);
+    case 'ADD_TO_CART':
+      addItem(action.payload as CartItem);
+      triggerCartDelight(); // §14 fly-to-cart + haptic
       break;
-    case "DEEP_LINK":
-      router.push(action.payload.url); // expo-router or React Navigation
+    case 'REMOVE_FROM_CART':
+      removeItem((action.payload as { id: string }).id);
       break;
-    case "APPLY_MYSTERY_GIFT_COUPON":
-      applyCoupon(action.payload.couponCode);
+    case 'NAVIGATE':
+      router.push((action.payload as { route: string }).route);
+      break;
+    case 'APPLY_COUPON':
+      // coupon logic + confetti burst — §14
+      triggerCouponDelight();
+      break;
+    default:
+      // unknown action — safe no-op
       break;
   }
 }
 ```
-This is the *one* sanctioned switch statement in the codebase — it's branching on a closed, exhaustive action union, not on open-ended/unknown server strings, which is the distinction the resilience requirement (FR4) cares about.
 
-### 9.3 Isolated cart state (FR10)
-Use Zustand (or a hand-rolled store) with **selector-based subscriptions** so each card only re-renders when *its own* slice changes:
-```ts
+### 9.3 Cart Store (Zustand)
+
+```typescript
+// src/store/cartStore.ts
+import { create } from 'zustand';
+
 interface CartState {
-  items: Record<string, number>;
-  addToCart: (productId: string, qty?: number) => void;
+  items: Record<string, CartItem>;
+  addItem: (item: CartItem) => void;
+  removeItem: (id: string) => void;
+  getQuantity: (id: string) => number;
 }
 
-const useCartStore = create<CartState>((set) => ({
+export const useCartStore = create<CartState>((set, get) => ({
   items: {},
-  addToCart: (productId, qty = 1) =>
+  addItem: (item) =>
     set((state) => ({
-      items: { ...state.items, [productId]: (state.items[productId] ?? 0) + qty },
+      items: {
+        ...state.items,
+        [item.id]: {
+          ...item,
+          quantity: (state.items[item.id]?.quantity ?? 0) + 1,
+        },
+      },
     })),
+  removeItem: (id) =>
+    set((state) => {
+      const { [id]: _, ...rest } = state.items;
+      return { items: rest };
+    }),
+  getQuantity: (id) => get().items[id]?.quantity ?? 0,
 }));
 
-// Inside ProductCard:
-const qty = useCartStore((s) => s.items[product.id] ?? 0); // only re-renders if THIS id's count changes
-```
-Wrap `ProductCard` in `React.memo` with a custom comparator on `product.id` so the parent grid/carousel re-rendering (e.g. from theme change) doesn't cascade either.
-
-### 9.4 Theming context (FR9)
-```ts
-const ThemeContext = createContext<ThemeConfig>({ primary: "#000", background: "#fff" });
-// <ThemeContext.Provider value={payload.theme}> wraps the root engine
-// const { primary } = useContext(ThemeContext) inside leaf components
+// Per-item selector — ProductCard subscribes to this, not the whole store
+export const selectQuantity = (id: string) => (state: CartState) =>
+  state.items[id]?.quantity ?? 0;
 ```
 
-### 9.5 Suggested folder structure
+`ProductCard` calls `useCartStore(selectQuantity(product.id))` — sibling cards never re-render on another card's quantity change.
+
+### 9.4 ThemeContext
+
+```typescript
+// src/context/ThemeContext.tsx
+const defaultTheme: ThemeConfig = {
+  primary: '#FF6B6B',
+  background: '#FFF9F0',
+  accent: '#FFE66D',
+};
+
+export const ThemeContext = createContext<ThemeConfig>(defaultTheme);
+
+export function ThemeProvider({ campaignId, children }: Props) {
+  const theme = CAMPAIGN_THEMES[campaignId ?? ''] ?? defaultTheme;
+  return <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>;
+}
+
+export const useTheme = () => useContext(ThemeContext);
 ```
-/src
-  /engine
-    HomepageRenderer.tsx      // outer FlashList + renderBlock
-    ComponentRegistry.ts
-    actionDispatcher.ts
-  /blocks
+
+### 9.5 Folder Structure
+
+```
+src/
+  blocks/
     BannerHero.tsx
-    ProductGrid2x2.tsx
+    ProductGrid.tsx
+    ProductCard.tsx
     DynamicCollection.tsx
     FullScreenOverlay.tsx
-  /components
-    ProductCard.tsx           // memoized leaf
-  /state
+    BlockErrorBoundary.tsx
+  registry/
+    blockRegistry.ts
+  actions/
+    dispatcher.ts
+    delight.ts          // §14 wow-layer side-effects
+  store/
     cartStore.ts
+  context/
     ThemeContext.tsx
-  /campaigns
-    backToSchool.json
-    summerPlayhouse.json
-    mysteryGiftCarnival.json
-  /mock
-    homepage.mock.json        // includes ≥1 unsupported block type on purpose
-  /types
-    blocks.ts
-    actions.ts
+  campaigns/
+    campaigns.ts        // three campaign configs
+  renderer/
+    HomepageRenderer.tsx
+  hooks/
+    useHomepagePayload.ts
 ```
-
-## 10. Non-Functional Requirements
-
-| Category | Requirement |
-|---|---|
-| Performance | No dropped-frame stutter on outer list scroll while inner carousel is being dragged; verified via `react-native` perf monitor or Flipper. |
-| Type safety | `strict: true` in `tsconfig.json`; no `any` in the registry/dispatcher signatures (the one acceptable `as` is the registry lookup cast shown above). |
-| Resilience | Engine must not crash on: unknown `type`, missing `items` array, malformed `action`, missing `imageUrl`. |
-| Memory | Repeated mount/unmount of `DYNAMIC_COLLECTION` rows (via scroll) must not show unbounded memory growth. |
-| Maintainability | Adding a 5th block type = 1 new component + 1 registry entry; zero edits to `HomepageRenderer.tsx`. |
-
-## 11. Acceptance Criteria (mapped to the stated grading rubric)
-
-| Rubric item | How this PRD's design satisfies it |
-|---|---|
-| Architectural cleanliness | Registry object (FR2/§9.1), not switch-on-type. |
-| Sustained frame performance | Single outer FlashList, `keyExtractor` by stable `block.id`, `React.memo` on leaf cards, nested horizontal list isolated per FR5. |
-| TypeScript strategy | Discriminated unions for blocks & actions (§8); `IncomingBlock` deliberately widened to model "anything could arrive." |
-| Defensive resilience | `renderBlock` returns `null` + dev warning on miss (§9.1); mock payload intentionally includes a bad block type to prove it. |
-
-## 12. Assumptions & Open Questions
-
-- Assuming Expo (faster iteration, asset/Lottie support out of the box) unless reviewer specifies Bare Workflow.
-- Assuming `@shopify/flash-list` over `FlatList` given the explicit "highly recommended" framing and the perf rubric weight.
-- Open question: should campaign switching be exposed as a visible dev toggle in the demo, or only swappable by editing which JSON file is imported? (Recommend: visible toggle — makes the "no app release needed" story demoable live.)
-- Open question: real remote asset URLs vs. bundled local assets referenced by a fake `https://` URL — recommend bundling locally and treating the path as if it were remote, to avoid flaky network dependencies during review.
-
-## 13. Suggested Build Plan
-
-1. **Schema + Registry skeleton** — types, mock JSON (with one deliberately bad block), registry, outer FlashList rendering all blocks as plain placeholder boxes.
-2. **Real block UIs** — BannerHero, ProductGrid2x2, DynamicCollection with real styling and `keyExtractor`/memoization in place from the start.
-3. **Action dispatcher** — wire all taps through `handleAction`, stub out cart/navigation/coupon handlers.
-4. **Cart state isolation** — Zustand store + selector subscriptions + memo; add a visible render-count badge per card to prove isolation.
-5. **Theming context** — root `ThemeContext`, wire 2–3 components to consume it, confirm live re-skin.
-6. **Campaign engine** — 3 campaign JSONs, switcher UI, `FULL_SCREEN_OVERLAY` with `pointerEvents="none"`, Lottie/WebP per campaign.
-7. **Resilience pass** — throw more malformed blocks at it (missing fields, null arrays, wrong types) and confirm nothing crashes.
-8. **Performance pass** — profile scroll, confirm no nested-list re-mount churn, finalize `keyExtractor`/memo boundaries.
 
 ---
 
-## 14. Delight Layer — Motion & Micro-Interaction Polish (Stretch, Non-Blocking)
+## §10 — Functional Requirements
 
-**Why this section exists:** the brief's rubric is architecture-first — registry pattern, frame performance, type safety, resilience (§"Candidate Evaluation Criteria" in the assignment). None of it scores on visual flourish. Everything below is therefore explicitly a *stretch layer*: build it only after FR1–FR10 (§7) are solid and demoable, never instead of them. Every item is designed to bolt onto the existing architecture — registry, dispatcher, theme context, single outer list, isolated cart store — rather than introduce a parallel system, so none of it puts the assignment's stated constraints at risk.
+| ID | Requirement |
+|----|-------------|
+| FR1 | The entire homepage is rendered by a **single vertical `FlashList`**. No nested vertical lists. Stable `keyExtractor` on `block.id`. `estimatedItemSize` tuned per block type. |
+| FR2 | A **Component Registry** (factory pattern) maps `BlockType → React.ComponentType`. The renderer calls `renderBlock(block)` — no switch statements in render path. |
+| FR3 | `DYNAMIC_COLLECTION` renders a **horizontal `FlashList`** (or `ScrollView`) nested inside the vertical cell. Must not interrupt vertical scroll momentum. |
+| FR4 | Every block cell is wrapped in a **`BlockErrorBoundary`**. A thrown error in one cell logs to console, renders a silent fallback, and does not affect other cells. |
+| FR5 | A **mock JSON payload** is served locally (no network call). It includes at least: one `BANNER_HERO`, one `PRODUCT_GRID` with ≥4 products, one `DYNAMIC_COLLECTION` with ≥4 items, one `FULL_SCREEN_OVERLAY`. |
+| FR6 | All interactions are routed through **`handleAction(action)`**. Leaf components receive `onAction` props — no direct store imports in block components. |
+| FR7 | Switching campaign ID at runtime **re-skins colours and swaps the overlay animation** with no native rebuild. |
+| FR8 | `FULL_SCREEN_OVERLAY` blocks mount as **root-level siblings** to the feed (not inside a list cell) via a portal or top-level conditional render. |
+| FR9 | All components consume colours from **`ThemeContext`** — no hard-coded hex values in component files. |
+| FR10 | Cart quantity changes re-render **only the affected `ProductCard`**. Sibling cards must not re-render. Verified with a `DEV`-only render-count badge. |
 
-**Guardrails that keep this section inside the brief's rules:**
-- **No new top-level list.** Every effect lives either *inside* an existing block component, or as a single root-level overlay sibling to the outer FlashList — the exact pattern the brief already uses for `FULL_SCREEN_OVERLAY` (FR8). The "single, singular vertical FlatList/FlashList" rule (§1D of the assignment) is never violated.
-- **UI thread only.** All motion runs on Reanimated shared values (`withTiming` / `withSpring` / `withRepeat`), never the legacy JS-thread `Animated` API — so it stays invisible to the frame-rate rubric line and to the outer list's scroll responder, and never threatens the "no stutter / no dropped vertical velocity" constraint (§1B).
-- **Leaf components stay dumb.** Cards still only fire their `action` object. Any visual flair tied to *what happens after* the action (fly-to-cart ghost, confetti burst, haptic buzz) is triggered *from inside* `handleAction`, never from the card itself — the same decoupling the assignment mandates for business logic (§1C / FR6) just carries the FX trigger too.
-- **Schema additions are optional and additive.** Every new JSON field defaults to "absent," and an absent field means zero visual change from today's behavior — so the Resilience Critical Rule (§1A) and FR4 are untouched by any of this.
+---
 
-### 14.1 Wow-factor catalogue
+## §11 — Non-Functional Requirements
 
-| # | Feature | What the user sees | Where it lives / how it stays inside the rules |
-|---|---|---|---|
-| D1 | Skeleton shimmer placeholders | Each block type shows a shaped, softly-shimmering placeholder — matched to its final layout — while the mock payload "arrives," instead of a blank screen or spinner. | Pure presentational state inside each existing block component; one looped Reanimated shared value drives the shimmer. No new list, no layout shift once real content swaps in. |
-| D2 | Staggered entrance animation | Each block fades + slides up ~12px the first time it scrolls into view, staggered ~40ms per item. | Driven by `viewabilityConfig` / `onViewableItemsChanged` on the *existing* outer list; a `Set<blockId>` kept in a ref (not state) tracks "already animated" so recycled cells never replay it — the strict `keyExtractor`/memo boundaries (§1D) stay untouched. |
-| D3 | "Fly-to-cart" ghost + spring cart badge | Tapping "Add" sends a small ghost copy of the product thumbnail arcing into the header's cart icon, which does a quick spring "pop." | The card only fires `ADD_TO_CART` as before. `handleAction` measures the card's on-screen rect and triggers a single root-mounted `CartFXOverlay` — same `pointerEvents="none"` overlay pattern already required for `FULL_SCREEN_OVERLAY`. The badge subscribes only to its own Zustand slice, so this never touches sibling cards — preserves FR10/G5 exactly. |
-| D4 | Sliding mini-cart bar | A slim bar slides up from the bottom the moment cart count > 0, showing total items + tiny thumbnails of what's inside. | Its own component, subscribed to its own store selector — isolated from the feed's render tree, same isolation guarantee as D3. |
-| D5 | Campaign theme cross-fade | Switching the active campaign melts the background/primary colors over ~300ms instead of popping instantly. | Same `ThemeContext` (FR9, §9.4) — just wraps the values in a Reanimated `interpolateColor`. No new state source of truth. |
-| D6 | Data-driven ambient motion | A faint looping particle treatment behind the hero banner only — confetti drift, bubbles, or sparkle, depending on the active campaign. | Uses the new optional `theme.ambientMotion` field (§8), resolved through a tiny lookup table built the exact same way as the §9.1 Component Registry — same factory pattern, one more entry, not a new paradigm. Scoped to the hero only, never the full screen, to keep it cheap. |
-| D7 | Pulsing "Hot" badge on carousel items | An optional soft pulse-glow ring around a `DYNAMIC_COLLECTION` item's badge (e.g. "🔥 Trending"). | Uses the new optional `Product.badge` field (§8) — absent by default, so existing mock items are unaffected and FR4 resilience is untouched. |
-| D8 | Confetti burst on mystery-gift redemption | A short, contained Lottie confetti burst near the row that fired the action, instead of (or alongside) the full-screen overlay. | Triggered from inside `handleAction`'s existing `APPLY_MYSTERY_GIFT_COUPON` branch (§9.2) — reuses the same cached Lottie loader already required for FR8. |
-| D9 | Themed pull-to-refresh | The outer list's native `refreshControl` plays a tiny campaign-themed Lottie loop while refreshing (falling pencils for Back to School, a wave ripple for Summer Playhouse). | Uses the new optional `CampaignConfig.refreshAnimationUrl` field (§8) — same "swap JSON, get new visuals" principle as FR7; falls back to the platform default spinner if absent. |
-| D10 | Haptic feedback | A light haptic tick on a successful add-to-cart and on campaign switch. | One-line call inside `handleAction`'s `ADD_TO_CART` branch and the campaign-switch handler — zero leaf-component involvement, same decoupling as D3/D8. |
+| Concern | Target |
+|---------|--------|
+| Scroll frame rate | 60 fps on mid-range Android device |
+| Initial render | Feed visible within 500 ms of payload load |
+| Cart isolation | Sibling `ProductCard` re-render count stays at 0 on add-to-cart |
+| TypeScript | `tsc --strict` passes with zero errors |
+| Resilience | Malformed / missing block fields never crash the app |
+| Bundle size | No unnecessary peer dependencies |
 
-### 14.2 Two representative sketches
+---
 
-**Cart badge spring-pop, fully isolated (extends §9.3):**
-```ts
-// components/CartBadge.tsx
-const count = useCartStore((s) => Object.values(s.items).reduce((a, b) => a + b, 0));
-const scale = useSharedValue(1);
+## §12 — Acceptance Criteria
 
+| AC | Criterion |
+|----|-----------|
+| AC1 | Homepage renders all four block types from mock JSON |
+| AC2 | Switching campaign ID changes colours and overlay animation without app restart |
+| AC3 | Adding product A to cart does not trigger a re-render on product B's card |
+| AC4 | Introducing a malformed block (missing required field) causes only that cell to show a silent fallback — rest of feed unaffected |
+| AC5 | Unknown block type in payload is silently skipped — no crash, no visible gap |
+| AC6 | Unknown action type dispatched is safely ignored |
+| AC7 | `tsc --strict` exits 0 |
+| AC8 | `FULL_SCREEN_OVERLAY` renders above the feed without blocking scroll |
+
+---
+
+## §13 — Assumptions & Open Questions
+
+**Assumptions**
+
+- Expo SDK with `expo-dev-client` is acceptable (plain Expo Go won't run FlashList + Lottie)
+- Lottie assets bundled locally (free assets from LottieFiles); CDN not required
+- Android is the primary test target; iOS parity is a bonus
+- The render-count badge (`__DEV__` only) can remain in the submission to demonstrate AC3
+
+**Open Questions**
+
+| # | Question | Status |
+|---|----------|--------|
+| OQ1 | Does the reviewer require a physical device build or is the iOS/Android simulator sufficient? | Open |
+| OQ2 | Should the dev-mode campaign switcher be visible in the demo video? | Open |
+| OQ3 | Are there preferred Lottie asset sources, or is LottieFiles acceptable? | Open |
+
+---
+
+## §14 — Delight Layer (Optional Stretch)
+
+> **Constraint:** Everything in this section bolts onto the existing architecture. No new top-level lists. All motion runs on the UI thread via Reanimated shared values. All effects are triggered from `handleAction` or viewability callbacks — leaf components stay dumb. Schema additions use optional fields with no defaults, so any payload without them renders identically to today (FR4 resilience preserved).
+
+### 14.1 Shimmer Skeleton
+
+During payload load a single looped `useSharedValue` drives shimmer placeholders for every block type. Layout is reserved upfront — no shift when real content arrives.
+
+```typescript
+const shimmerProgress = useSharedValue(0);
 useEffect(() => {
-  scale.value = withSequence(withSpring(1.35, { damping: 6 }), withSpring(1));
-}, [count]);
-
-const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-// <Animated.View style={style}><Text>{count}</Text></Animated.View>
+  shimmerProgress.value = withRepeat(
+    withTiming(1, { duration: 1000, easing: Easing.linear }),
+    -1
+  );
+}, []);
 ```
-Only re-renders on its own selector slice — the 30+ sibling cards never see this component re-render, the same guarantee FR10 already demands.
 
-**Theme cross-fade (extends §9.4):**
-```ts
-// state/ThemeContext.tsx
-const progress = useSharedValue(0);
-useEffect(() => { progress.value = withTiming(1, { duration: 300 }); }, [activeCampaignId]);
+### 14.2 Staggered Block Entrance
 
-const bg = useDerivedValue(() =>
-  interpolateColor(progress.value, [0, 1], [prevTheme.background, nextTheme.background])
-);
+Blocks fade + slide up as they enter the viewport. Driven by FlashList's `onViewableItemsChanged` — each block gets a 60 ms stagger offset based on its index.
+
+```typescript
+const translateY = useSharedValue(24);
+const opacity = useSharedValue(0);
+// triggered when block enters viewport:
+translateY.value = withDelay(index * 60, withSpring(0));
+opacity.value = withDelay(index * 60, withTiming(1));
 ```
-Same single `ThemeContext` source of truth — just animated instead of snapping.
 
-### 14.3 Suggested build order
-Only after Build Plan steps 1–8 (§13) are done and demoable:
-1. **D1 + D2** — cheapest visual lift; touches only existing components.
-2. **D3 + D4** — biggest "wow," and directly showcases the cart-isolation work FR10 already required you to do.
-3. **D5 + D6** — reuse the FR9/FR2 patterns almost verbatim.
-4. **D7–D10** — small and independent; do as many as time allows.
+### 14.3 Fly-to-Cart Ghost
 
-### 14.4 One honest caveat
-`react-native-reanimated` (and `expo-haptics` for D10) aren't named in the brief's "Stack to Know." Neither conflicts with anything listed there — Reanimated is the standard, UI-thread-safe pairing for FlashList-based feeds, and is what keeps D1–D9 from costing you the frame-rate rubric line — but if your reviewer is strict about *only* the named libraries, treat this whole section as optional and say so plainly in your README rather than silently adding dependencies.
+On `ADD_TO_CART`, a thumbnail ghost mounts at the tapped card's position and arc-animates to the cart icon (top-right). Implemented as a single root-level overlay (sibling to the feed) — completely outside the render tree, zero impact on feed performance.
+
+```typescript
+// in delight.ts — triggered from handleAction
+export function triggerFlyToCart(sourceLayout: LayoutRect) {
+  flyToCartStore.mount({ sourceLayout });
+}
+```
+
+### 14.4 Cart Badge Spring-Pop
+
+Cart icon badge scale-springs on every item addition:
+
+```typescript
+const scale = useSharedValue(1);
+export function popCartBadge() {
+  scale.value = withSequence(withSpring(1.4), withSpring(1));
+}
+```
+
+### 14.5 Mini-Cart Bar
+
+When cart count goes from 0 → 1, a bottom bar slides up (`withSpring`) showing item count and a checkout CTA. It slides down when cart empties. Fully independent component — does not touch the FlashList.
+
+### 14.6 Campaign Theme Cross-Fade
+
+When campaign switches, colours cross-fade over 300 ms via Reanimated interpolated colour values on the `ThemeContext` consumer root — not on individual components.
+
+### 14.7 Ambient Motion (Hero Banner)
+
+Optional data-driven faint particles behind the hero banner. Enabled when `themeConfig.ambientMotion` is set (`'confetti' | 'bubbles' | 'sparkle'`). Scoped only to the `BannerHero` component — no global particle system.
+
+### 14.8 Pulse Badge
+
+Products with `badge.pulse: true` get a soft looped glow. The `pulse` field is optional and defaults to `false` — no behaviour change for existing products.
+
+```typescript
+const glowOpacity = useSharedValue(0.4);
+useEffect(() => {
+  if (!badge?.pulse) return;
+  glowOpacity.value = withRepeat(
+    withSequence(withTiming(1, { duration: 600 }), withTiming(0.4, { duration: 600 })),
+    -1
+  );
+}, [badge?.pulse]);
+```
+
+### 14.9 Confetti Burst on Coupon
+
+When `APPLY_COUPON` dispatches successfully, a Lottie confetti burst triggers near that row. Reuses the same cached animation loader as `FullScreenOverlay` — no new dependency.
+
+### 14.10 Campaign Pull-to-Refresh
+
+Pull-to-refresh plays a campaign-themed Lottie animation while loading; falls back to the platform default if no animation URL is configured. Swapped at runtime via campaign config — no native rebuild.
+
+### 14.11 Haptic Feedback
+
+Light haptic tick on cart addition and campaign switch:
+
+```typescript
+import * as Haptics from 'expo-haptics';
+Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+```
+
+One line, no new dependency (already in Expo SDK).
+
+### 14.12 Delight Build Order
+
+1. Shimmer skeletons (cheapest — touches no existing components)
+2. Staggered entrances (viewability callback hook)
+3. Pulse badge (one `useEffect` in `ProductCard`)
+4. Cart badge spring-pop
+5. Mini-cart bar
+6. Confetti coupon burst
+7. Campaign cross-fade
+8. Ambient hero motion
+9. Fly-to-cart ghost (most complex — root overlay)
+10. Themed pull-to-refresh
+11. Haptics (sprinkle last — one line per trigger)
+
+> All of §14 is optional polish. Ship only after all ACs in §12 pass.
 
 ---
 
-## 15. Tooling Division — MCP-Assisted Workflow
+## §15 — Tooling Division — MCP-Assisted Workflow
 
-You mentioned five connected MCP tools (names were truncated in the panel, so identities below are inferred from name + tool-count and should be confirmed against the actual connector picker before relying on this section). None of them change anything in §1–§14 — they're how you'll move faster through the existing plan, not new requirements. Only assign a tool work where it's a genuine fit; forcing one in everywhere would just add noise.
+Each MCP connector has a precise, bounded role. The table below defines what each tool covers and — critically — what it does **not** own.
 
-| MCP (as shown) | Likely identity | Where it actually helps | What it should not be trusted to do |
-|---|---|---|---|
-| conte... (2/2 tools) | Context7 — live library-docs lookup | Build Plan steps 1, 2, 6 (§13): pull current, version-accurate API signatures for `@shopify/flash-list`, `react-native-reanimated` v3, `lottie-react-native`, and Zustand before writing the registry/dispatcher/animation code. Directly protects the TypeScript Strategy and Sustained Frame Performance rubric lines — stale FlashList/Reanimated APIs are a common, silent way perf work breaks. | Architectural decisions (registry vs. switch, memo boundaries) — those are this PRD's call, not a docs lookup's. |
-| GitHub | GitHub — repo ops | Bookend the build: scaffold the repo from the §9.5 folder structure at the start, commit per Build Plan step (1→8, then 14.3's delight steps) so there's a clean, reviewable history rather than one giant final commit — reviewers of "production-ready" submissions often skim commit hygiene, not just the diff. | Anything destructive (force-push, branch deletion) without you confirming first. |
-| magi... mcp (3/3 tools) | Magic MCP (21st.dev-style AI component generator) | First-pass scaffolds for Delight Layer pieces (§14) that are mostly visual boilerplate — e.g. a shimmer skeleton shell or the `CartFXOverlay` container — to hand-refine afterward, not core SDUI engine code (registry, dispatcher, cart store), which needs to match this PRD's exact contracts. | Ship as final without retrofitting to §14's guardrails (UI-thread animation, dumb leaf components, root-overlay pattern) — generated scaffolds rarely arrive already obeying those by default. |
-| pla... (23/23 tools) | Playwright — browser automation | Only relevant if you also stand up a React Native Web preview for fast visual QA without a simulator. Optional, not part of the core plan. | Testing the actual iOS/Android app — Playwright drives browsers, not native RN runtimes; don't let its presence imply RN-native E2E coverage you don't actually have. |
-| stitch (9/9 tools) | Stitch — Google's AI UI/visual design generator | Filling the gap the assignment itself left open: the brief's campaign table says "[Attach/Embed Video Here]" for each campaign's look but never specifies exact colors/composition. Use it to generate reference mockups for the three campaign skins (§FR7) and the hero's ambient motion (§14 D6) — then read the actual hex values off the result into `theme.primary` / `theme.background` (§8), so the visual design has a source instead of being invented ad hoc while coding. | Don't treat its output as final asset files — re-export/recreate anything used as a real Lottie/WebP asset rather than shipping a design-tool screenshot. |
+| Tool | Role | Boundaries |
+|------|------|------------|
+| **Context7** | Fetch live API signatures for `@shopify/flash-list`, `react-native-reanimated`, `lottie-react-native`, `zustand` before each implementation phase | Read-only reference. Does not write code or scaffolds. Boot first — before any code is written. |
+| **GitHub MCP** | Initialise repo, create branch per phase, commit after each phase gate | Commit messages follow `feat(phase-N): description` convention. Must be running before Phase 1 code is written. |
+| **Magic MCP** | Scaffold component shells for delight-layer items: shimmer wrapper, mini-cart bar, fly-to-cart overlay, confetti trigger | Phase 9 (delight) only. Output must be validated against the `React.memo` and Reanimated contracts in §9. Do not use for core registry, cart store, or action dispatcher — those must match §9 contracts exactly. |
+| **Stitch** | Generate hex colour tokens for the three campaign skins (§7) and the brand base palette (§16) from the Kiddo brand mark | Run before Phase 6. Outputs go into `src/campaigns/campaigns.ts` and `src/tokens/brandTokens.ts`. The brief's campaign table is incomplete on colours — Stitch fills this gap. |
+| **Playwright** | Screenshot-test the web preview across all three campaign themes | Optional / web only. Does not cover native RN build path. Run after Phase 8 if time allows. |
 
-**Suggested order:** Stitch (design reference) → GitHub (repo init) → Context7 (verify APIs as you build §13 steps 1–8) → Magic MCP (delight-layer scaffolds, §14.3) → Playwright only if a web preview is in scope.
+### 15.1 Sequencing
+
+```
+Boot Context7 → Init GitHub repo → [Phases 1–5] → Run Stitch (colours) →
+[Phase 6 theming] → [Phase 7 overlays] → [Phase 8 cleanup] →
+Magic MCP scaffolds (Phase 9 delight) → Playwright screenshots (optional)
+```
 
 ---
 
-*End of PRD.*
+## §16 — Visual Design System & Known Issues
+
+### 16.1 Brand Token Table
+
+Extracted from the Kiddo brand mark (warm cream base, coral wordmark, rainbow stripe).
+
+```typescript
+// src/tokens/brandTokens.ts
+export const BrandTokens = {
+  // Base palette
+  cream:   '#FFF9F0',   // app background
+  coral:   '#FF6B6B',   // primary / CTA
+  sky:     '#4ECDC4',   // secondary accent
+  sun:     '#FFE66D',   // highlight / badge
+  pink:    '#FF8FAB',   // tertiary
+
+  // Typography
+  fontDisplay: 'Baloo2',        // headings, hero text
+  fontBody:    'NunitoSans',    // product names, prices, body copy
+
+  // Spacing scale (8pt grid)
+  space1: 4,
+  space2: 8,
+  space3: 16,
+  space4: 24,
+  space5: 32,
+  space6: 48,
+
+  // Border radius
+  radiusSm: 8,
+  radiusMd: 16,
+  radiusLg: 24,
+  radiusPill: 999,
+} as const;
+```
+
+### 16.2 Typography Pairing
+
+| Role | Font | Weight | Size |
+|------|------|--------|------|
+| Hero headline | Baloo 2 | 700 | 28 |
+| Section title | Baloo 2 | 600 | 20 |
+| Product name | Nunito Sans | 600 | 14 |
+| Price | Nunito Sans | 700 | 14 |
+| Badge label | Nunito Sans | 700 | 11 |
+| Body / subline | Nunito Sans | 400 | 14 |
+| CTA button | Nunito Sans | 700 | 15 |
+
+Load via `expo-font` in `_layout.tsx` before the feed renders.
+
+### 16.3 Component Chrome Rules
+
+| Token | Value | Applied to |
+|-------|-------|------------|
+| Card background | `cream` | `ProductCard`, `DynamicCollection` item |
+| Card border radius | `radiusMd` (16) | All cards |
+| Card shadow | `elevation: 2` / `shadowOpacity: 0.08` | iOS + Android |
+| CTA button radius | `radiusPill` | All buttons |
+| Section title colour | `coral` | `ProductGrid.title`, `DynamicCollection.title` |
+| Badge background | `sun` | Default badge |
+| Badge text | `#333` | All badges |
+| Primary button bg | `coral` | Add-to-cart, hero CTA |
+| Primary button text | `#fff` | — |
+
+### 16.4 Signature Decorative Element
+
+A rainbow arc (three concentric arcs: coral → sun → sky, 20 % opacity) sits behind the `BannerHero` headline text. Implemented as an SVG layer inside `BannerHero`. Does not repeat on other blocks.
+
+### 16.5 Known Bug — Stale Carousel Titles
+
+**Problem:** Campaign-specific titles (e.g. "Back to School Picks") are baked into the static mock `DYNAMIC_COLLECTION` blocks. When the user switches campaigns in the dev switcher, the block titles don't update because the mock payload is loaded once at mount.
+
+**Fix:** Give `DYNAMIC_COLLECTION` blocks evergreen titles (e.g. "Trending Now") in the base mock, and inject campaign-specific title overrides via the campaign config:
+
+```typescript
+// src/campaigns/campaigns.ts
+export const CAMPAIGN_CONFIGS: Record<string, CampaignConfig> = {
+  summer: {
+    theme: { ... },
+    blockOverrides: {
+      'dynamic-collection-1': { title: 'Summer Essentials' },
+    },
+  },
+  ...
+};
+```
+
+The `HomepageRenderer` merges `blockOverrides` into the payload at render time — no mutation of the original mock.
+
+### 16.6 Known Bug — Irrelevant Placeholder Images
+
+**Problem:** `product.imageUrl` values using random Unsplash seeds pull unrelated stock photos (e.g. architecture photos in a kids' toy grid).
+
+**Fix (preferred):** Replace with category-keyed Unsplash collections:
+
+```typescript
+const CATEGORY_IMAGE_MAP: Record<string, string> = {
+  toys:       'https://source.unsplash.com/collection/1111111/200x200',
+  books:      'https://source.unsplash.com/collection/2222222/200x200',
+  clothing:   'https://source.unsplash.com/collection/3333333/200x200',
+  stationery: 'https://source.unsplash.com/collection/4444444/200x200',
+};
+```
+
+**Fix (alternative — more cohesive):** Replace product images with coloured category icon tiles (tinted background + category emoji/icon). Eliminates network dependency, loads instantly, suits the Kiddo brand aesthetic.
+
+---
+
+## §17 — Suggested Build Plan
+
+| Phase | Deliverable | Gate before next phase |
+|-------|-------------|------------------------|
+| 1 | Expo project scaffold, TypeScript strict config, all interfaces from §8 defined | `tsc --strict` passes |
+| 2 | Mock JSON payload (`src/mock/homepage.json`), block registry with stub components | Registry renders without crash on all 4 block types |
+| 3 | `HomepageRenderer` with single `FlashList`, `BlockErrorBoundary` wrapping each cell | Malformed block = silent fallback, rest of feed OK |
+| 4 | Full block components: `BannerHero`, `ProductGrid`, `ProductCard`, `DynamicCollection`, `FullScreenOverlay` | All 4 block types render correct content |
+| 5 | Zustand cart store, per-item selector, `React.memo` on `ProductCard`, render-count badge | AC3 passes (sibling card render count = 0) |
+| 6 | `ThemeContext`, three campaign configs (Stitch colours), dev-mode campaign switcher | AC2 passes — colour + overlay swap without restart |
+| 7 | `FullScreenOverlay` mounted as root sibling (portal), Lottie assets bundled | AC8 passes — overlay above feed, scroll unblocked |
+| 8 | Cleanup: remove dead code, run `tsc`, record demo video, write README | All 8 ACs pass; `tsc` exits 0 |
+| 9 | Delight layer (§14) — optional, only if all ACs already green | Shimmer → staggered entrance → pulse → cart delight → ambient motion |

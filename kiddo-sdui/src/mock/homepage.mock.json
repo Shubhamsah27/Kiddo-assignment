@@ -1,124 +1,98 @@
 {
-  "theme": {
-    "primary": "#FFD700",
-    "background": "#FFFFFF",
-    "ambientMotion": "sparkle"
-  },
-  "activeCampaignId": "back_to_school",
   "blocks": [
     {
       "id": "hero_banner_1",
       "type": "BANNER_HERO",
-      "imageUrl": "https://picsum.photos/800/400?random=1",
-      "action": {
-        "type": "DEEP_LINK",
-        "payload": { "url": "/campaign/back-to-school-deals" }
-      }
+      "headline": "Kiddo Superfast Sale",
+      "subline": "Convenience, speed, and parenting trust.",
+      "ctaLabel": "Shop Now",
+      "ctaAction": {
+        "type": "NAVIGATE",
+        "payload": { "route": "/campaign/back-to-school" }
+      },
+      "imageUrl": ""
     },
     {
       "id": "unsupported_block_test",
-      "type": "FUTURE_PROMO_V3",
-      "some_new_parameter": "should_be_skipped_gracefully"
+      "type": "NEW_COMPONENT_V2",
+      "parameter": "should_be_skipped"
     },
     {
       "id": "malformed_block_test",
-      "type": "PRODUCT_GRID_2X2"
+      "type": "PRODUCT_GRID",
+      "title": "Broken Grid Block Tests"
     },
     {
       "id": "grid_school_essentials",
-      "type": "PRODUCT_GRID_2X2",
+      "type": "PRODUCT_GRID",
       "title": "School Stationery Essentials",
-      "items": [
+      "products": [
         {
           "id": "p_pencil_case",
-          "title": "Astronaut Pencil Case",
-          "imageUrl": "https://picsum.photos/300/300?random=11",
-          "price": 249,
-          "action": {
-            "type": "ADD_TO_CART",
-            "payload": { "productId": "p_pencil_case", "qty": 1 }
-          },
+          "name": "Astronaut Pencil Case",
+          "price": 24900,
+          "imageUrl": "",
+          "category": "stationery",
           "badge": { "label": "Trending", "pulse": true }
         },
         {
           "id": "p_crayons",
-          "title": "24-Pack Premium Crayons",
-          "imageUrl": "https://picsum.photos/300/300?random=12",
-          "price": 129,
-          "action": {
-            "type": "ADD_TO_CART",
-            "payload": { "productId": "p_crayons", "qty": 1 }
-          }
+          "name": "24-Pack Premium Crayons",
+          "price": 12900,
+          "imageUrl": "",
+          "category": "stationery"
         },
         {
           "id": "p_notebook",
-          "title": "A5 Spiral Notebooks (Set of 3)",
-          "imageUrl": "https://picsum.photos/300/300?random=13",
-          "price": 189,
-          "action": {
-            "type": "ADD_TO_CART",
-            "payload": { "productId": "p_notebook", "qty": 1 }
-          },
+          "name": "A5 Spiral Notebooks (Set of 3)",
+          "price": 18900,
+          "imageUrl": "",
+          "category": "stationery",
           "badge": { "label": "Value Pack" }
         },
         {
           "id": "p_geometry_box",
-          "title": "Metal Geometry Compass Set",
-          "imageUrl": "https://picsum.photos/300/300?random=14",
-          "price": 150,
-          "action": {
-            "type": "ADD_TO_CART",
-            "payload": { "productId": "p_geometry_box", "qty": 1 }
-          }
+          "name": "Metal Geometry Compass Set",
+          "price": 15000,
+          "imageUrl": "",
+          "category": "stationery"
         }
       ]
     },
     {
       "id": "carousel_bestsellers",
       "type": "DYNAMIC_COLLECTION",
-      "title": "Back to School Hot Deals 🔥",
+      "title": "Trending Now",
       "items": [
         {
           "id": "p_lunchbox",
-          "title": "Insulated Lunch Box",
-          "imageUrl": "https://picsum.photos/300/300?random=21",
-          "price": 399,
-          "action": {
-            "type": "ADD_TO_CART",
-            "payload": { "productId": "p_lunchbox", "qty": 1 }
-          },
+          "name": "Insulated Lunch Box",
+          "price": 39900,
+          "imageUrl": "",
+          "category": "clothing",
           "badge": { "label": "Hot Sellers", "pulse": true }
         },
         {
           "id": "p_waterbottle",
-          "title": "Stainless Steel Flask 500ml",
-          "imageUrl": "https://picsum.photos/300/300?random=22",
-          "price": 499,
-          "action": {
-            "type": "ADD_TO_CART",
-            "payload": { "productId": "p_waterbottle", "qty": 1 }
-          }
+          "name": "Stainless Steel Flask 500ml",
+          "price": 49900,
+          "imageUrl": "",
+          "category": "clothing"
         },
         {
           "id": "p_schoolbag",
-          "title": "Ergonomic Kids Backpack",
-          "imageUrl": "https://picsum.photos/300/300?random=23",
-          "price": 899,
-          "action": {
-            "type": "ADD_TO_CART",
-            "payload": { "productId": "p_schoolbag", "qty": 1 }
-          },
+          "name": "Ergonomic Kids Backpack",
+          "price": 89900,
+          "imageUrl": "",
+          "category": "clothing",
           "badge": { "label": "New In" }
         },
         {
           "id": "p_markers",
-          "title": "12-Color Dual Tip Markers",
-          "imageUrl": "https://picsum.photos/300/300?random=24",
-          "price": 199,
-          "action": {
-            "type": "ADD_TO_CART",
-            "payload": { "productId": "p_markers", "qty": 1 }
-          }
+          "name": "12-Color Dual Tip Markers",
+          "price": 19900,
+          "imageUrl": "",
+          "category": "stationery"
         }
       ]
     }

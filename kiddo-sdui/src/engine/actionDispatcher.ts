@@ -1,23 +1,40 @@
-import { Action } from "../types/actions";
+import { Action, CartItem } from "../types/actions";
 import { useCartStore } from "../state/cartStore";
 import { Alert } from "react-native";
+import * as Haptics from "expo-haptics";
 
-export function handleAction(action: Action) {
+export function handleAction(action: Action): void {
   console.log(`[ActionDispatcher] Processing action type: ${action.type}`, action.payload);
   
   switch (action.type) {
     case "ADD_TO_CART":
-      useCartStore.getState().addToCart(action.payload.productId, action.payload.qty);
+      const itemToAdd = action.payload as unknown as CartItem;
+      useCartStore.getState().addItem(itemToAdd);
+      
+      // Haptics tick delight (Light impact feedback)
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
       break;
-    case "DEEP_LINK":
-      Alert.alert("Deep Link Triggered", `Navigating to: ${action.payload.url}`);
+
+    case "REMOVE_FROM_CART":
+      const itemToRemove = action.payload as { id: string };
+      useCartStore.getState().removeItem(itemToRemove.id);
+      
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
       break;
-    case "APPLY_MYSTERY_GIFT_COUPON":
+
+    case "NAVIGATE":
+      const navigationPayload = action.payload as { route: string };
+      Alert.alert("Navigation Triggered", `Navigating to route: ${navigationPayload.route}`);
+      break;
+
+    case "APPLY_COUPON":
+      const couponPayload = action.payload as { couponCode: string };
       Alert.alert(
         "Coupon Applied! 🎁",
-        `Mystery Gift coupon code "${action.payload.couponCode}" has been successfully added to your order.`
+        `Mystery Gift coupon "${couponPayload.couponCode}" has been successfully added to your order.`
       );
       break;
+
     default:
       console.warn(`[ActionDispatcher] Unknown or unhandled action:`, action);
   }

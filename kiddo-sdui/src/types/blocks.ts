@@ -1,32 +1,45 @@
 import { ThemeConfig } from "./actions";
 
+export type BlockType =
+  | "BANNER_HERO"
+  | "PRODUCT_GRID"
+  | "DYNAMIC_COLLECTION"
+  | "FULL_SCREEN_OVERLAY";
+
 export interface Product {
   id: string;
-  title: string;
+  name: string;
+  price: number; // in pence / cents
   imageUrl: string;
-  price: number;
-  action: {
-    type: "ADD_TO_CART";
-    payload: { productId: string; qty?: number };
+  category: string;
+  badge?: {
+    label: string;
+    pulse?: boolean;
   };
-  badge?: { label: string; pulse?: boolean };
 }
 
 export interface BaseBlock {
   id: string;
-  type: string;
+  type: BlockType;
+  campaignId?: string;
 }
 
 export interface BannerHeroBlock extends BaseBlock {
   type: "BANNER_HERO";
+  headline: string;
+  subline?: string;
+  ctaLabel: string;
+  ctaAction: {
+    type: string;
+    payload: any;
+  };
   imageUrl: string;
-  action?: any; // Widened action type for the universal dispatcher
 }
 
-export interface ProductGrid2x2Block extends BaseBlock {
-  type: "PRODUCT_GRID_2X2";
-  title?: string;
-  items: Product[];
+export interface ProductGridBlock extends BaseBlock {
+  type: "PRODUCT_GRID";
+  title: string;
+  products: Product[];
 }
 
 export interface DynamicCollectionBlock extends BaseBlock {
@@ -37,28 +50,27 @@ export interface DynamicCollectionBlock extends BaseBlock {
 
 export interface FullScreenOverlayBlock extends BaseBlock {
   type: "FULL_SCREEN_OVERLAY";
-  animation_url: string;
+  lottieUrl: string;
+  durationMs: number;
 }
 
-export type KnownBlock =
+export type Block =
   | BannerHeroBlock
-  | ProductGrid2x2Block
+  | ProductGridBlock
   | DynamicCollectionBlock
   | FullScreenOverlayBlock;
 
-export type IncomingBlock = KnownBlock | (BaseBlock & { type: string; [k: string]: unknown });
-
 export interface CampaignConfig {
-  id: "back_to_school" | "summer_playhouse" | "mystery_gift_carnival";
+  id: "summer" | "back_to_school" | "festive";
   name: string;
   theme: ThemeConfig;
   overlay?: FullScreenOverlayBlock;
-  extraBlocks?: KnownBlock[];
-  refreshAnimationUrl?: string;
+  extraBlocks?: Block[];
+  blockOverrides?: Record<string, Partial<Block>>;
 }
 
 export interface HomepagePayload {
-  theme: ThemeConfig;
-  activeCampaignId?: CampaignConfig["id"];
-  blocks: IncomingBlock[];
+  campaignId?: string;
+  blocks: Block[];
 }
+export type IncomingBlock = Block | (BaseBlock & { type: string; [k: string]: unknown });

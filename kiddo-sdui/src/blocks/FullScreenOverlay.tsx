@@ -8,12 +8,12 @@ interface FullScreenOverlayProps {
 }
 
 export const FullScreenOverlay: React.FC<FullScreenOverlayProps> = ({ block }) => {
-  if (!block || !block.animation_url) return null;
+  if (!block || !block.lottieUrl) return null;
 
   return (
     <View style={styles.overlayContainer} pointerEvents="none">
       <LottieView
-        source={{ uri: block.animation_url }}
+        source={{ uri: block.lottieUrl }}
         style={styles.animation}
         autoPlay
         loop

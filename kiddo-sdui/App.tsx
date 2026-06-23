@@ -5,39 +5,40 @@ import { CampaignSwitcher } from "./src/components/CampaignSwitcher";
 import { CartBadge } from "./src/components/CartBadge";
 import { FullScreenOverlay } from "./src/blocks/FullScreenOverlay";
 import { ThemeContext } from "./src/state/ThemeContext";
-import { CampaignConfig, HomepagePayload } from "./src/types/blocks";
+import { CampaignConfig, HomepagePayload, Block } from "./src/types/blocks";
+import { BrandTokens } from "./src/tokens/brandTokens";
 
 // Imports
 import mockPayload from "./src/mock/homepage.mock.json";
-import campaignsList from "./src/campaigns/campaigns.json";
+import { CAMPAIGN_CONFIGS } from "./src/campaigns/campaigns";
 
 export default function App() {
-  const campaigns = campaignsList as CampaignConfig[];
+  const campaigns = Object.values(CAMPAIGN_CONFIGS);
   const [activeCampaignId, setActiveCampaignId] = useState<CampaignConfig["id"]>("back_to_school");
 
   // Lookup active campaign
   const activeCampaign = useMemo(() => {
-    return campaigns.find((c) => c.id === activeCampaignId) || campaigns[0];
-  }, [campaigns, activeCampaignId]);
+    return CAMPAIGN_CONFIGS[activeCampaignId] || CAMPAIGN_CONFIGS.back_to_school;
+  }, [activeCampaignId]);
 
   // Merge default payload structures with the selected campaign configuration elements
-  const currentPayload = useMemo<HomepagePayload>(() => {
-    const defaultBlocks = mockPayload.blocks;
+  const currentPayload = useMemo<HomepagePayload & { blockOverrides?: Record<string, any> }>(() => {
+    const defaultBlocks = mockPayload.blocks as Block[];
     const extraBlocks = activeCampaign.extraBlocks || [];
     
     return {
-      theme: activeCampaign.theme,
-      activeCampaignId: activeCampaign.id,
+      campaignId: activeCampaign.id,
       blocks: [...defaultBlocks, ...extraBlocks],
+      blockOverrides: activeCampaign.blockOverrides,
     };
   }, [activeCampaign]);
 
   return (
-    <ThemeContext.Provider value={currentPayload.theme}>
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: currentPayload.theme.background }]}>
+    <ThemeContext.Provider value={activeCampaign.theme}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: activeCampaign.theme.background }]}>
         <StatusBar
           barStyle="dark-content"
-          backgroundColor={currentPayload.theme.background}
+          backgroundColor={activeCampaign.theme.background}
         />
         
         {/* Main Application Header */}
@@ -51,7 +52,10 @@ export default function App() {
 
         {/* Dynamic SDUI Main Feed Render Frame */}
         <View style={styles.feedContainer}>
-          <HomepageRenderer blocks={currentPayload.blocks} />
+          <HomepageRenderer
+            blocks={currentPayload.blocks}
+            blockOverrides={currentPayload.blockOverrides}
+          />
         </View>
 
         {/* Global Campaign Lottie overlay */}
@@ -59,9 +63,9 @@ export default function App() {
 
         {/* Dev Mode Switches */}
         <CampaignSwitcher
-          campaigns={campaigns}
+          campaigns={campaigns as any}
           activeId={activeCampaignId}
-          onSelectCampaign={(id) => setActiveCampaignId(id)}
+          onSelectCampaign={(id) => setActiveCampaignId(id as any)}
         />
       </SafeAreaView>
     </ThemeContext.Provider>
@@ -77,8 +81,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: BrandTokens.space3,
+    paddingVertical: BrandTokens.space2 + 4,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
     backgroundColor: "#fff",
@@ -86,7 +90,7 @@ const styles = StyleSheet.create({
   logo: {
     fontSize: 22,
     fontWeight: "900",
-    color: "#222",
+    color: BrandTokens.coral,
     letterSpacing: -0.5,
   },
   subLogo: {

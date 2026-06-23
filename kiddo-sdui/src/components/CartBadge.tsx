@@ -14,7 +14,7 @@ export const CartBadge: React.FC = () => {
   
   // Selector subscription to total items quantity
   const totalCount = useCartStore((state) =>
-    Object.values(state.items).reduce((acc, count) => acc + count, 0)
+    Object.values(state.items).reduce((acc, item) => acc + (item.quantity || 0), 0)
   );
 
   const scale = useSharedValue(1);
