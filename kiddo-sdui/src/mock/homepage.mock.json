@@ -31,7 +31,7 @@
           "id": "p_pencil_case",
           "name": "Astronaut Pencil Case",
           "price": 24900,
-          "imageUrl": "",
+          "imageUrl": "assets/products/pencil_case.png",
           "category": "stationery",
           "badge": { "label": "Trending", "pulse": true }
         },
@@ -39,7 +39,7 @@
           "id": "p_crayons",
           "name": "24-Pack Premium Crayons",
           "price": 12900,
-          "imageUrl": "",
+          "imageUrl": "assets/products/crayons.png",
           "category": "stationery"
         },
         {
@@ -83,7 +83,7 @@
           "id": "p_schoolbag",
           "name": "Ergonomic Kids Backpack",
           "price": 89900,
-          "imageUrl": "",
+          "imageUrl": "assets/products/backpack.png",
           "category": "clothing",
           "badge": { "label": "New In" }
         },

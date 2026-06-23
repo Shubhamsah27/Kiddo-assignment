@@ -13,6 +13,8 @@ import { useTheme } from "../state/ThemeContext";
 import { handleAction } from "../engine/actionDispatcher";
 import { BrandTokens } from "../tokens/brandTokens";
 
+import { Image } from "expo-image";
+
 interface ProductCardProps {
   product: Product;
 }
@@ -93,7 +95,23 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(
 
         {/* Brand System category-keyed background icon tile */}
         <View style={[styles.tileContainer, { backgroundColor: categoryInfo.bg }]}>
-          <Text style={styles.tileEmoji}>{categoryInfo.emoji}</Text>
+          {product.imageUrl ? (
+            <Image
+              source={
+                product.imageUrl === "assets/products/pencil_case.png"
+                  ? require("../../assets/products/pencil_case.png")
+                  : product.imageUrl === "assets/products/crayons.png"
+                  ? require("../../assets/products/crayons.png")
+                  : product.imageUrl === "assets/products/backpack.png"
+                  ? require("../../assets/products/backpack.png")
+                  : { uri: product.imageUrl }
+              }
+              style={styles.image}
+              contentFit="contain"
+            />
+          ) : (
+            <Text style={styles.tileEmoji}>{categoryInfo.emoji}</Text>
+          )}
         </View>
 
         {product.badge && (
@@ -184,6 +202,10 @@ const styles = StyleSheet.create({
   },
   tileEmoji: {
     fontSize: 42,
+  },
+  image: {
+    width: "100%",
+    height: "100%",
   },
   productBadge: {
     position: "absolute",
