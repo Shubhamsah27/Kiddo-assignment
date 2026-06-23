@@ -4,4 +4,4 @@ services:
     repo: https://github.com/Shubhamsah27/Kiddo-assignment
     branch: main
     buildCommand: npm install && npm run build
-    publishDir: dist
+    staticPublishPath: ./dist
