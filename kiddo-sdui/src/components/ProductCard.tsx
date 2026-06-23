@@ -104,6 +104,16 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(
                   ? require("../../assets/products/crayons.png")
                   : product.imageUrl === "assets/products/backpack.png"
                   ? require("../../assets/products/backpack.png")
+                  : product.imageUrl === "assets/products/notebook.png"
+                  ? require("../../assets/products/notebook.png")
+                  : product.imageUrl === "assets/products/geometry_box.png"
+                  ? require("../../assets/products/geometry_box.png")
+                  : product.imageUrl === "assets/products/lunchbox.png"
+                  ? require("../../assets/products/lunchbox.png")
+                  : product.imageUrl === "assets/products/waterbottle.png"
+                  ? require("../../assets/products/waterbottle.png")
+                  : product.imageUrl === "assets/products/markers.png"
+                  ? require("../../assets/products/markers.png")
                   : { uri: product.imageUrl }
               }
               style={styles.image}

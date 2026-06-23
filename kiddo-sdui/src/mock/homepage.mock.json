@@ -46,7 +46,7 @@
           "id": "p_notebook",
           "name": "A5 Spiral Notebooks (Set of 3)",
           "price": 18900,
-          "imageUrl": "",
+          "imageUrl": "assets/products/notebook.png",
           "category": "stationery",
           "badge": { "label": "Value Pack" }
         },
@@ -54,7 +54,7 @@
           "id": "p_geometry_box",
           "name": "Metal Geometry Compass Set",
           "price": 15000,
-          "imageUrl": "",
+          "imageUrl": "assets/products/geometry_box.png",
           "category": "stationery"
         }
       ]
@@ -68,7 +68,7 @@
           "id": "p_lunchbox",
           "name": "Insulated Lunch Box",
           "price": 39900,
-          "imageUrl": "",
+          "imageUrl": "assets/products/lunchbox.png",
           "category": "clothing",
           "badge": { "label": "Hot Sellers", "pulse": true }
         },
@@ -76,7 +76,7 @@
           "id": "p_waterbottle",
           "name": "Stainless Steel Flask 500ml",
           "price": 49900,
-          "imageUrl": "",
+          "imageUrl": "assets/products/waterbottle.png",
           "category": "clothing"
         },
         {
@@ -91,7 +91,7 @@
           "id": "p_markers",
           "name": "12-Color Dual Tip Markers",
           "price": 19900,
-          "imageUrl": "",
+          "imageUrl": "assets/products/markers.png",
           "category": "stationery"
         }
       ]
