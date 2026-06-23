@@ -5,6 +5,9 @@ export const defaultTheme: ThemeConfig = {
   primary: "#FF6B6B",
   background: "#FFF9F0",
   accent: "#FFE66D",
+  surface: "#FFFFFF",
+  text: "#111111",
+  textMuted: "#666666",
 };
 
 export const ThemeContext = createContext<ThemeConfig>(defaultTheme);

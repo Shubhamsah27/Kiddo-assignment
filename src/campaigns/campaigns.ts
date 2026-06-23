@@ -8,6 +8,9 @@ export const CAMPAIGN_CONFIGS: Record<string, CampaignConfig> = {
       primary: "#FF6B6B",
       background: "#FFF9F0",
       accent: "#4ECDC4",
+      surface: "#FFFFFF",
+      text: "#111111",
+      textMuted: "#666666",
       ambientMotion: "bubbles"
     },
     overlay: {
@@ -20,7 +23,7 @@ export const CAMPAIGN_CONFIGS: Record<string, CampaignConfig> = {
       "carousel_bestsellers": {
         type: "DYNAMIC_COLLECTION",
         title: "Summer Essentials ☀️"
-      } as any
+      }
     },
     extraBlocks: [
       {
@@ -44,7 +47,7 @@ export const CAMPAIGN_CONFIGS: Record<string, CampaignConfig> = {
             category: "toys"
           }
         ]
-      } as any
+      }
     ]
   },
   back_to_school: {
@@ -54,6 +57,9 @@ export const CAMPAIGN_CONFIGS: Record<string, CampaignConfig> = {
       primary: "#4ECDC4",
       background: "#FFF9F0",
       accent: "#FFE66D",
+      surface: "#FFFFFF",
+      text: "#111111",
+      textMuted: "#666666",
       ambientMotion: "confetti"
     },
     overlay: {
@@ -66,7 +72,7 @@ export const CAMPAIGN_CONFIGS: Record<string, CampaignConfig> = {
       "carousel_bestsellers": {
         type: "DYNAMIC_COLLECTION",
         title: "Back to School Picks 🎒"
-      } as any
+      }
     },
     extraBlocks: [
       {
@@ -90,7 +96,7 @@ export const CAMPAIGN_CONFIGS: Record<string, CampaignConfig> = {
             badge: { label: "50% OFF" }
           }
         ]
-      } as any
+      }
     ]
   },
   festive: {
@@ -100,6 +106,9 @@ export const CAMPAIGN_CONFIGS: Record<string, CampaignConfig> = {
       primary: "#FFE66D",
       background: "#FFF9F0",
       accent: "#FF6B6B",
+      surface: "#FFFFFF",
+      text: "#111111",
+      textMuted: "#666666",
       ambientMotion: "sparkle"
     },
     overlay: {
@@ -112,7 +121,7 @@ export const CAMPAIGN_CONFIGS: Record<string, CampaignConfig> = {
       "carousel_bestsellers": {
         type: "DYNAMIC_COLLECTION",
         title: "Festive Season Hot Deals 🔥"
-      } as any
+      }
     },
     extraBlocks: [
       {
@@ -126,7 +135,7 @@ export const CAMPAIGN_CONFIGS: Record<string, CampaignConfig> = {
           payload: { couponCode: "KIDDOCARNIVAL2026" }
         },
         imageUrl: ""
-      } as any
+      }
     ]
   }
 };

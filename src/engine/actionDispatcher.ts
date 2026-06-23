@@ -1,41 +1,36 @@
-import { Action, CartItem } from "../types/actions";
+import { Action } from "../types/actions";
 import { useCartStore } from "../state/cartStore";
 import { Alert } from "react-native";
 import * as Haptics from "expo-haptics";
 
+const actionHandlers: Record<Action["type"], (payload: any) => void> = {
+  ADD_TO_CART: (payload) => {
+    useCartStore.getState().addItem(payload);
+    // Haptics tick delight (Light impact feedback)
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+  },
+  REMOVE_FROM_CART: (payload) => {
+    useCartStore.getState().removeItem(payload.id);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+  },
+  NAVIGATE: (payload) => {
+    Alert.alert("Navigation Triggered", `Navigating to route: ${payload.route}`);
+  },
+  APPLY_COUPON: (payload) => {
+    Alert.alert(
+      "Coupon Applied! 🎁",
+      `Mystery Gift coupon "${payload.couponCode}" has been successfully added to your order.`
+    );
+  },
+};
+
 export function handleAction(action: Action): void {
   console.log(`[ActionDispatcher] Processing action type: ${action.type}`, action.payload);
   
-  switch (action.type) {
-    case "ADD_TO_CART":
-      const itemToAdd = action.payload as unknown as CartItem;
-      useCartStore.getState().addItem(itemToAdd);
-      
-      // Haptics tick delight (Light impact feedback)
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-      break;
-
-    case "REMOVE_FROM_CART":
-      const itemToRemove = action.payload as { id: string };
-      useCartStore.getState().removeItem(itemToRemove.id);
-      
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-      break;
-
-    case "NAVIGATE":
-      const navigationPayload = action.payload as { route: string };
-      Alert.alert("Navigation Triggered", `Navigating to route: ${navigationPayload.route}`);
-      break;
-
-    case "APPLY_COUPON":
-      const couponPayload = action.payload as { couponCode: string };
-      Alert.alert(
-        "Coupon Applied! 🎁",
-        `Mystery Gift coupon "${couponPayload.couponCode}" has been successfully added to your order.`
-      );
-      break;
-
-    default:
-      console.warn(`[ActionDispatcher] Unknown or unhandled action:`, action);
+  const handler = actionHandlers[action.type];
+  if (handler) {
+    handler(action.payload);
+  } else {
+    console.warn(`[ActionDispatcher] Unknown or unhandled action:`, action);
   }
 }

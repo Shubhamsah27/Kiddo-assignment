@@ -37,8 +37,8 @@ export const CartBadge: React.FC = () => {
       <View style={[styles.cartIconWrapper, { backgroundColor: theme.primary + "15" }]}>
         <Text style={[styles.iconText, { color: theme.primary }]}>🛒</Text>
         {totalCount > 0 && (
-          <Animated.View style={[styles.badge, animatedStyle, { backgroundColor: theme.primary }]}>
-            <Text style={styles.badgeText}>{totalCount}</Text>
+          <Animated.View style={[styles.badge, animatedStyle, { backgroundColor: theme.primary, borderColor: theme.surface }]}>
+            <Text style={[styles.badgeText, { color: theme.surface }]}>{totalCount}</Text>
           </Animated.View>
         )}
       </View>
@@ -72,10 +72,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 4,
     borderWidth: 1.5,
-    borderColor: "#fff",
   },
   badgeText: {
-    color: "#fff",
     fontSize: 9,
     fontWeight: "bold",
     textAlign: "center",

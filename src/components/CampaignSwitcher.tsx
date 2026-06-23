@@ -17,8 +17,8 @@ export const CampaignSwitcher: React.FC<CampaignSwitcherProps> = ({
   const theme = useTheme();
 
   return (
-    <View style={styles.outerContainer}>
-      <Text style={styles.sectionHeader}>Campaign Control Panel (Dev Mode)</Text>
+    <View style={[styles.container, { backgroundColor: theme.surface, borderTopColor: theme.textMuted + "40" }]}>
+      <Text style={[styles.label, { color: theme.textMuted }]}>Campaign Control Panel (Dev Mode)</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -33,8 +33,8 @@ export const CampaignSwitcher: React.FC<CampaignSwitcherProps> = ({
               style={[
                 styles.button,
                 {
-                  backgroundColor: isActive ? theme.primary : "#f5f5f5",
-                  borderColor: isActive ? theme.primary : "#ddd",
+                  backgroundColor: isActive ? theme.primary : theme.background,
+                  borderColor: isActive ? theme.primary : theme.textMuted + "40",
                 },
               ]}
             >
@@ -42,7 +42,7 @@ export const CampaignSwitcher: React.FC<CampaignSwitcherProps> = ({
                 style={[
                   styles.buttonText,
                   {
-                    color: isActive ? "#fff" : "#444",
+                    color: isActive ? theme.surface : theme.text,
                     fontWeight: isActive ? "700" : "500",
                   },
                 ]}
@@ -58,10 +58,9 @@ export const CampaignSwitcher: React.FC<CampaignSwitcherProps> = ({
 };
 
 const styles = StyleSheet.create({
-  outerContainer: {
-    backgroundColor: "#fff",
+  container: {
+    padding: 16,
     borderTopWidth: 1,
-    borderTopColor: "#e0e0e0",
     paddingVertical: 12,
     paddingHorizontal: 16,
     elevation: 10,
@@ -70,10 +69,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  sectionHeader: {
+  label: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#666",
     textTransform: "uppercase",
     marginBottom: 8,
     letterSpacing: 0.5,

@@ -1,7 +1,10 @@
 import React from "react";
 import { View, Text, FlatList, StyleSheet } from "react-native";
+import { useTheme } from "../state/ThemeContext";
 import { DynamicCollectionBlock } from "../types/blocks";
 import { ProductCard } from "../components/ProductCard";
+
+import { FlashList } from "@shopify/flash-list";
 
 interface DynamicCollectionProps {
   block: DynamicCollectionBlock;
@@ -10,8 +13,8 @@ interface DynamicCollectionProps {
 export const DynamicCollection: React.FC<DynamicCollectionProps> = ({ block }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>{block.title}</Text>
-      <FlatList
+      <Text style={[styles.sectionTitle, { color: useTheme().text }]}>{block.title}</Text>
+      <FlashList
         data={block.items}
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -22,7 +25,7 @@ export const DynamicCollection: React.FC<DynamicCollectionProps> = ({ block }) =
           </View>
         )}
         contentContainerStyle={styles.listContent}
-        nestedScrollEnabled={true}
+        estimatedItemSize={140}
         decelerationRate="fast"
       />
     </View>

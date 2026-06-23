@@ -44,7 +44,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(
           price: product.price,
           imageUrl: product.imageUrl,
           category: product.category,
-        } as any,
+        },
       });
 
     const removeFromCart = () =>
@@ -87,10 +87,10 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(
     const categoryInfo = CATEGORY_MAP[product.category] || CATEGORY_MAP.default;
 
     return (
-      <View style={[styles.card, { borderColor: theme.primary + "15" }]}>
+      <View style={[styles.card, { borderColor: theme.primary + "15", backgroundColor: theme.surface }]}>
         {/* Render isolation tracking label */}
         <View style={styles.renderBadge}>
-          <Text style={styles.renderText}>R: {renderCount.current}</Text>
+          <Text style={[styles.renderText, { color: theme.surface }]}>R: {renderCount.current}</Text>
         </View>
 
         {/* Brand System category-keyed background icon tile */}
@@ -132,16 +132,16 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(
               product.badge.pulse ? pulseStyle : null,
             ]}
           >
-            <Text style={styles.productBadgeText}>{product.badge.label}</Text>
+            <Text style={[styles.productBadgeText, { color: theme.text }]}>{product.badge.label}</Text>
           </Animated.View>
         )}
 
         <View style={styles.details}>
-          <Text style={styles.title} numberOfLines={1}>
+          <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
             {product.name}
           </Text>
           {/* Display price in rupees (pence / 100) */}
-          <Text style={styles.price}>₹{Math.round(product.price / 100)}</Text>
+          <Text style={[styles.price, { color: theme.text }]}>₹{Math.round(product.price / 100)}</Text>
 
           {quantity > 0 ? (
             <View style={styles.quantityContainer}>
@@ -149,14 +149,14 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(
                 onPress={removeFromCart}
                 style={[styles.qtyButton, { backgroundColor: theme.primary }]}
               >
-                <Text style={styles.qtyBtnText}>-</Text>
+                <Text style={[styles.qtyBtnText, { color: theme.surface }]}>-</Text>
               </TouchableOpacity>
-              <Text style={styles.quantityText}>{quantity}</Text>
+              <Text style={[styles.quantityText, { color: theme.text }]}>{quantity}</Text>
               <TouchableOpacity
                 onPress={addToCart}
                 style={[styles.qtyButton, { backgroundColor: theme.primary }]}
               >
-                <Text style={styles.qtyBtnText}>+</Text>
+                <Text style={[styles.qtyBtnText, { color: theme.surface }]}>+</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -164,7 +164,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(
               onPress={addToCart}
               style={[styles.addButton, { backgroundColor: theme.primary }]}
             >
-              <Text style={styles.addText}>Add</Text>
+              <Text style={[styles.addText, { color: theme.surface }]}>Add</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -176,7 +176,6 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: BrandTokens.cream,
     borderRadius: BrandTokens.radiusMd,
     borderWidth: 1,
     overflow: "hidden",
@@ -199,7 +198,6 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   renderText: {
-    color: "#fff",
     fontSize: 9,
     fontFamily: BrandTokens.fontBody,
     fontWeight: "bold",
@@ -227,7 +225,6 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   productBadgeText: {
-    color: "#333",
     fontSize: 9,
     fontWeight: "700",
     fontFamily: BrandTokens.fontBody,
@@ -238,13 +235,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#333",
     fontFamily: BrandTokens.fontBody,
   },
   price: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#111",
     marginVertical: 4,
     fontFamily: BrandTokens.fontBody,
   },
@@ -255,7 +250,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   addText: {
-    color: "#fff",
     fontSize: 12,
     fontWeight: "700",
     fontFamily: BrandTokens.fontBody,
@@ -274,7 +268,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   qtyBtnText: {
-    color: "#fff",
     fontSize: 14,
     fontWeight: "700",
     fontFamily: BrandTokens.fontBody,
@@ -282,7 +275,6 @@ const styles = StyleSheet.create({
   quantityText: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#111",
     fontFamily: BrandTokens.fontBody,
   },
 });

@@ -16,9 +16,9 @@ export const BannerHero: React.FC<BannerHeroProps> = ({ block }) => {
   const handlePress = () => {
     if (block.ctaAction) {
       handleAction({
-        type: block.ctaAction.type as any,
+        type: block.ctaAction.type as import("../types/actions").Action["type"],
         payload: block.ctaAction.payload,
-      });
+      } as import("../types/actions").Action);
     }
   };
 
@@ -42,13 +42,13 @@ export const BannerHero: React.FC<BannerHeroProps> = ({ block }) => {
           <Text style={[styles.headline, { color: theme.primary }]}>
             {block.headline}
           </Text>
-          {block.subline && <Text style={styles.subline}>{block.subline}</Text>}
+          {block.subline && <Text style={[styles.subline, { color: theme.textMuted }]}>{block.subline}</Text>}
           
           <TouchableOpacity
             onPress={handlePress}
             style={[styles.button, { backgroundColor: theme.primary }]}
           >
-            <Text style={styles.buttonText}>{block.ctaLabel}</Text>
+            <Text style={[styles.buttonText, { color: theme.surface }]}>{block.ctaLabel}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -92,7 +92,6 @@ const styles = StyleSheet.create({
   },
   subline: {
     fontSize: 13,
-    color: "#666",
     fontFamily: BrandTokens.fontBody,
     marginTop: BrandTokens.space1,
     marginBottom: BrandTokens.space2,
@@ -105,7 +104,6 @@ const styles = StyleSheet.create({
     marginTop: BrandTokens.space2,
   },
   buttonText: {
-    color: "#fff",
     fontSize: 12,
     fontWeight: "700",
     fontFamily: BrandTokens.fontBody,
