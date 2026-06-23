@@ -1,5 +1,7 @@
 # Kiddo SDUI Homepage Renderer
 
+**Live Deployment:** [https://kiddo-sdui-homepage.onrender.com/](https://kiddo-sdui-homepage.onrender.com/)
+
 A generic, server-driven React Native (Expo) rendering engine for Q-commerce home feeds. The application is driven dynamically by a local mock JSON payload; visual themes, layout hierarchies, campaign banners, overlays, and action dispatchers are fully controlled by server data without requiring App Store / Play Store binary release cycles.
 
 ---
