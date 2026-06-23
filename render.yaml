@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: kiddo-sdui-homepage
+    runtime: node
+    repo: https://github.com/Shubhamsah27/Kiddo-assignment
+    branch: main
+    buildCommand: npm install && npm run build
+    publishPath: dist
+    staticPublish: true
